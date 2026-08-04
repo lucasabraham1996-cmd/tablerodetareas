@@ -1,0 +1,1664 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tablero de acciones · avanzado</title>
+  <style>
+    :root{
+      --bg:#edf1f7;
+      --panel:#ffffff;
+      --panel-soft:#f7f9fc;
+      --text:#1f2a44;
+      --muted:#6a7895;
+      --line:#cfd7e5;
+      --line-soft:#e4e9f2;
+      --shadow:0 12px 28px rgba(26,40,71,.08);
+      --col-width:255px;
+      --radius:8px;
+      --card-radius:6px;
+    }
+
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0}
+    body{
+      font-family:Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.86), rgba(243,246,250,.96)),
+        var(--bg);
+      color:var(--text);
+      min-height:100vh;
+    }
+
+    .compact{
+      --col-width:228px;
+      --radius:6px;
+      --card-radius:5px;
+    }
+
+    .app{
+      max-width:1900px;
+      margin:auto;
+      padding:14px;
+    }
+
+    .panel{
+      background:rgba(255,255,255,.82);
+      border:1px solid var(--line);
+      box-shadow:var(--shadow);
+      backdrop-filter:blur(8px);
+      -webkit-backdrop-filter:blur(8px);
+    }
+
+    header{
+      position:sticky;
+      top:10px;
+      z-index:60;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:16px;
+      padding:15px;
+      border-radius:14px;
+      margin-bottom:12px;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      min-width:260px;
+    }
+
+    .logo{
+      width:46px;height:46px;border-radius:12px;
+      display:grid;place-items:center;
+      color:#fff;font-size:21px;font-weight:900;
+      background:linear-gradient(135deg,#457cff,#7a60ff);
+    }
+
+    h1{
+      margin:0;
+      font-size:clamp(1.05rem,2vw,1.45rem);
+      line-height:1.15;
+    }
+    .sub{
+      margin-top:4px;
+      color:var(--muted);
+      font-size:.88rem;
+    }
+
+    .toolbar{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+
+    button,input,select,textarea{font:inherit}
+
+    .btn{
+      border:1px solid var(--line);
+      background:#fff;
+      color:var(--text);
+      border-radius:10px;
+      padding:9px 12px;
+      cursor:pointer;
+      transition:.15s ease;
+      white-space:nowrap;
+    }
+    .btn:hover{transform:translateY(-1px); background:#f4f7fd}
+    .btn.primary{
+      background:linear-gradient(135deg,#4c7dff,#7b61ff);
+      color:#fff;
+      border-color:transparent;
+    }
+    .btn.active{
+      outline:2px solid #b9cbff;
+      background:#eef4ff;
+    }
+
+    .stats{
+      display:grid;
+      grid-template-columns:repeat(5, minmax(130px,1fr));
+      gap:10px;
+      margin-bottom:12px;
+    }
+
+    .stat{
+      border-radius:12px;
+      padding:13px 14px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:8px;
+    }
+    .stat strong{display:block;font-size:1.35rem;line-height:1}
+    .stat small{display:block;margin-top:5px;color:var(--muted)}
+    .badge{
+      padding:5px 8px;
+      border-radius:999px;
+      font-size:.74rem;
+      font-weight:800;
+      border:1px solid rgba(0,0,0,.08);
+      background:#f1f5fb;
+      white-space:nowrap;
+    }
+
+    .meta-grid{
+      display:grid;
+      grid-template-columns:1fr;
+      gap:12px;
+      margin-bottom:12px;
+    }
+
+    .legend,.filters{
+      padding:14px;
+      border-radius:12px;
+    }
+
+    .legend h3,.filters h3{
+      margin:0 0 10px;
+      font-size:.94rem;
+    }
+
+    .legend-list{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+    }
+
+    .legend-chip{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding:7px 9px;
+      border-radius:9px;
+      border:1px solid var(--line);
+      background:#fff;
+      font-size:.82rem;
+    }
+
+    .swatch{
+      width:14px;height:14px;border-radius:4px;border:1px solid rgba(0,0,0,.08)
+    }
+
+    .filters-grid{
+      display:grid;
+      grid-template-columns:minmax(230px,1.4fr) 180px 180px 180px 180px auto;
+      gap:10px;
+    }
+
+    .field{
+      width:100%;
+      background:#fff;
+      border:1px solid var(--line);
+      color:var(--text);
+      border-radius:9px;
+      padding:10px 11px;
+      outline:none;
+    }
+    .field::placeholder{color:#8f9cb9}
+    select.field option{color:#111}
+
+    .alertbar{
+      display:none;
+      border-radius:12px;
+      padding:11px 13px;
+      background:#fff2f2;
+      border:1px solid #e4b7b7;
+      color:#7b2f2f;
+      margin-bottom:12px;
+    }
+    .alertbar.show{display:block}
+
+
+    .top-scroll-wrap{
+      position:sticky;
+      top:92px;
+      z-index:45;
+      padding:6px 10px 4px;
+      border-radius:12px;
+      margin-bottom:8px;
+      background:rgba(255,255,255,.9);
+      border:1px solid var(--line);
+      box-shadow:0 8px 20px rgba(26,40,71,.06);
+    }
+    .top-scroll{
+      width:100%;
+      height:16px;
+      overflow-x:auto;
+      overflow-y:hidden;
+    }
+    .top-scroll-inner{height:1px}
+    .top-scroll::-webkit-scrollbar{height:12px}
+    .top-scroll::-webkit-scrollbar-thumb{background:#b9c5da;border-radius:999px}
+    .lucide-col svg,.logo svg{width:18px;height:18px;stroke-width:2}
+    .tag svg,.attachment-item svg,.attachment-edit-item svg{width:13px;height:13px;vertical-align:-2px}
+
+    .sheet-shell{
+      border-radius:14px;
+      padding:10px;
+      overflow:hidden;
+    }
+
+    .board{
+      display:grid;
+      grid-auto-flow:column;
+      grid-auto-columns:minmax(var(--col-width),var(--col-width));
+      gap:8px;
+      overflow-x:auto;
+      align-items:start;
+      padding-bottom:6px;
+      min-height:60vh;
+    }
+    .board::-webkit-scrollbar{height:12px}
+    .board::-webkit-scrollbar-thumb{background:#c7d1e4;border-radius:999px}
+
+    .column{
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      overflow:hidden;
+      background:#fff;
+    }
+
+    .column.collapsed .column-body{display:none}
+
+    .col-head{
+      border-bottom:1px solid var(--line);
+    }
+
+    .col-main{
+      min-height:48px;
+      padding:9px 10px;
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:8px;
+      color:#fff;
+      font-weight:800;
+      font-size:.84rem;
+      line-height:1.2;
+    }
+    .compact .col-main{font-size:.8rem;min-height:44px;padding:8px 9px}
+
+    .col-left{
+      display:flex;
+      gap:8px;
+      min-width:0;
+      flex:1;
+      align-items:flex-start;
+    }
+    .col-title{min-width:0}
+    .col-title-text{
+      display:block;
+      word-break:break-word;
+    }
+    .count{
+      margin-top:3px;
+      color:rgba(255,255,255,.9);
+      font-size:.72rem;
+      font-weight:700;
+    }
+
+    .collapse{
+      width:26px;height:26px;
+      border-radius:7px;border:none;
+      background:rgba(255,255,255,.18);
+      color:#fff;cursor:pointer;flex:0 0 auto
+    }
+
+    .column-body{
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.98), rgba(249,251,255,.98));
+      padding:8px;
+    }
+
+    .quick-add{
+      display:flex;
+      gap:7px;
+      margin-bottom:8px;
+    }
+    .compact .quick-add .field{padding:8px 10px}
+    .compact .quick-add .btn{padding:8px 10px}
+
+    .task-list{
+      display:flex;
+      flex-direction:column;
+      gap:7px;
+    }
+
+    .task{
+      position:relative;
+      border-radius:var(--card-radius);
+      border:1px solid #d8dfeb;
+      background:#f3f6fb;
+      padding:8px;
+      box-shadow:0 1px 0 rgba(255,255,255,.65) inset;
+    }
+    .compact .task{padding:7px}
+
+    .task::before{
+      content:"";
+      position:absolute;
+      left:0;top:0;bottom:0;
+      width:4px;
+      border-top-left-radius:var(--card-radius);
+      border-bottom-left-radius:var(--card-radius);
+      background:var(--accent, #8ca2d8);
+    }
+
+    .task.overdue{
+      box-shadow:0 0 0 1px #d98b8b inset;
+    }
+
+    .task-top{
+      display:flex;
+      gap:8px;
+      align-items:flex-start;
+    }
+
+    .check{
+      width:16px;height:16px;
+      margin-top:2px;
+      accent-color:#47c87c;
+      cursor:pointer;
+      flex:0 0 auto;
+    }
+
+    .task-main{flex:1;min-width:0}
+
+    .task-title{
+      font-weight:800;
+      font-size:.88rem;
+      line-height:1.32;
+      word-break:break-word;
+    }
+    .compact .task-title{font-size:.83rem}
+    .task.done .task-title{text-decoration:line-through}
+
+    .task-desc{
+      margin-top:4px;
+      color:#4b5873;
+      font-size:.8rem;
+      line-height:1.36;
+      white-space:pre-wrap;
+    }
+
+    .task-tags{
+      display:flex;
+      flex-wrap:wrap;
+      gap:5px;
+      margin-top:8px;
+    }
+
+    .tag{
+      font-size:.68rem;
+      padding:4px 7px;
+      border-radius:999px;
+      border:1px solid rgba(0,0,0,.07);
+      background:rgba(255,255,255,.6);
+      color:#33425f;
+    }
+    .status-chip{
+      font-weight:800;
+    }
+
+    .attachment-list{
+      margin-top:8px;
+      display:flex;
+      flex-direction:column;
+      gap:5px;
+    }
+    .attachment-item{
+      display:flex;
+      align-items:center;
+      gap:7px;
+      padding:5px 7px;
+      border:1px solid rgba(0,0,0,.07);
+      border-radius:8px;
+      background:rgba(255,255,255,.55);
+      font-size:.76rem;
+      color:#364462;
+    }
+    .attachment-item a{
+      color:#365ecf;
+      text-decoration:none;
+      overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+      flex:1;
+    }
+
+    .task-actions{
+      display:flex;
+      justify-content:flex-end;
+      gap:5px;
+      margin-top:8px;
+      flex-wrap:wrap;
+    }
+    .mini{
+      border:none;
+      background:rgba(255,255,255,.58);
+      color:#3d4963;
+      border-radius:7px;
+      padding:4px 7px;
+      cursor:pointer;
+      font-size:.78rem;
+    }
+    .mini:hover{background:#fff}
+
+    .column-footer{padding-top:8px}
+    .column-footer .btn{width:100%}
+
+    .empty{
+      padding:16px 10px;
+      text-align:center;
+      font-size:.83rem;
+      color:var(--muted);
+      border:1px dashed var(--line);
+      border-radius:6px;
+      background:#fff;
+    }
+
+    dialog{
+      width:min(840px, calc(100% - 24px));
+      border:none;
+      border-radius:16px;
+      padding:0;
+      background:#fff;
+      color:var(--text);
+      box-shadow:0 26px 62px rgba(18,30,53,.22);
+    }
+    dialog::backdrop{
+      background:rgba(18,29,49,.34);
+      backdrop-filter:blur(3px);
+    }
+
+    .modal{
+      padding:20px;
+    }
+    .modal h3{margin:0 0 14px}
+
+    .grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:12px;
+    }
+    .full{grid-column:1/-1}
+    label{
+      display:block;
+      font-size:.84rem;
+      color:var(--muted);
+      margin-bottom:6px;
+    }
+    textarea.field{min-height:88px;resize:vertical}
+
+    .hint{
+      margin-top:6px;
+      color:var(--muted);
+      font-size:.78rem;
+      line-height:1.35;
+    }
+
+    .attachment-edit-list{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      margin-top:8px;
+    }
+    .attachment-edit-item{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:8px;
+      border:1px solid var(--line);
+      background:#fafcff;
+      border-radius:8px;
+      padding:7px 8px;
+      font-size:.82rem;
+    }
+
+    .modal-actions{
+      display:flex;
+      justify-content:flex-end;
+      gap:8px;
+      margin-top:16px;
+      flex-wrap:wrap;
+    }
+
+    .config-section{
+      border:1px solid var(--line-soft);
+      border-radius:10px;
+      padding:12px;
+      background:#fafcff;
+      margin-bottom:12px;
+    }
+    .config-section h4{
+      margin:0 0 10px;
+      font-size:.9rem;
+    }
+    .status-config-list,.substatus-config-list{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+    .config-row{
+      display:grid;
+      grid-template-columns:1.2fr 110px 90px auto;
+      gap:8px;
+      align-items:center;
+    }
+    .config-row.sub{
+      grid-template-columns:1fr auto;
+    }
+
+    .toast-wrap{
+      position:fixed;
+      right:14px;
+      bottom:14px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      z-index:90;
+    }
+    .toast{
+      max-width:360px;
+      padding:10px 12px;
+      background:#fff;
+      border:1px solid var(--line);
+      border-radius:10px;
+      box-shadow:var(--shadow);
+    }
+
+    @media (max-width:1180px){
+      header{position:static;flex-direction:column;align-items:flex-start}
+      .toolbar{justify-content:flex-start}
+      .stats{grid-template-columns:repeat(2,1fr)}
+      .meta-grid{grid-template-columns:1fr}
+      .filters-grid{grid-template-columns:1fr 1fr}
+      .filters-grid > :first-child{grid-column:1/-1}
+      .board{display:flex;flex-direction:column;overflow:visible}
+      .column{width:100%}
+    }
+
+    @media (max-width:700px){
+      .app{padding:10px}
+      .toolbar{width:100%;display:grid;grid-template-columns:1fr 1fr}
+      .toolbar .btn{width:100%}
+      .filters-grid{grid-template-columns:1fr}
+      .stats{grid-template-columns:1fr 1fr}
+      .grid{grid-template-columns:1fr}
+      .full{grid-column:auto}
+      .quick-add{flex-direction:column}
+      .config-row{grid-template-columns:1fr}
+      .config-row.sub{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+  <div class="app" id="app">
+    <header class="panel">
+      <div class="brand">
+        <div class="logo"><i data-lucide="layout-dashboard"></i></div>
+        <div>
+          <h1>Tablero de acciones</h1>
+          <div class="sub">Más columnas en vista simple, colores suaves según la lógica de tu captura: verde realizado, amarillo en proceso y rojo urgente</div>
+        </div>
+      </div>
+      <div class="toolbar">
+        <button class="btn" id="pendingBtn"><i data-lucide="list-filter"></i> Solo no realizadas</button>
+        <button class="btn" id="compactBtn"><i data-lucide="columns-3"></i> Vista compacta</button>
+        <button class="btn" id="collapseBtn"><i data-lucide="minimize-2"></i> Contraer todo</button>
+        <button class="btn" id="configBtn"><i data-lucide="tags"></i> Etiquetas y colores</button>
+        <button class="btn" id="integrationBtn"><i data-lucide="bell-ring"></i> Recordatorios</button>
+        <button class="btn primary" id="newTaskBtn"><i data-lucide="plus"></i> Nueva tarea</button>
+      </div>
+    </header>
+
+    <section class="stats">
+      <div class="stat panel"><div><strong id="statTotal">0</strong><small>Total</small></div><span class="badge">Tablero</span></div>
+      <div class="stat panel"><div><strong id="statPending">0</strong><small>Urgentes</small></div><span class="badge" id="badgePending">Urgente</span></div>
+      <div class="stat panel"><div><strong id="statProgress">0</strong><small>En proceso</small></div><span class="badge" id="badgeProgress">Proceso</span></div>
+      <div class="stat panel"><div><strong id="statDone">0</strong><small>Completadas</small></div><span class="badge" id="badgeDone">Hecha</span></div>
+      <div class="stat panel"><div><strong id="statDue">0</strong><small>Vencidas / hoy</small></div><span class="badge" style="background:#fff1f1;border-color:#e4b7b7">Alerta</span></div>
+    </section>
+
+    <section class="meta-grid">
+      <div class="filters panel" style="grid-column:1/-1">
+        <h3>Filtros</h3>
+        <div class="filters-grid">
+          <input id="searchInput" class="field" placeholder="Buscar tarea, responsable o descripción..." />
+          <select id="areaFilter" class="field"><option value="">Todas las categorías</option></select>
+          <select id="statusFilter" class="field"><option value="">Todos los estados</option></select>
+          <select id="substatusFilter" class="field"><option value="">Todos los subestados</option></select>
+          <select id="deadlineFilter" class="field">
+            <option value="">Todos los plazos</option>
+            <option value="overdue">Vencidas</option>
+            <option value="today">Vencen hoy</option>
+            <option value="week">Próximos 7 días</option>
+            <option value="none">Sin plazo</option>
+          </select>
+          <button class="btn" id="clearFiltersBtn">Limpiar</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="alertBar" class="alertbar"></section>
+
+    <div class="top-scroll-wrap" id="topScrollWrap"><div class="top-scroll" id="topScroll"><div class="top-scroll-inner" id="topScrollInner"></div></div></div>
+
+    <section class="sheet-shell panel">
+      <main id="board" class="board"></main>
+    </section>
+  </div>
+
+  <dialog id="taskDialog">
+    <form id="taskForm" class="modal">
+      <h3 id="taskDialogTitle">Nueva tarea</h3>
+      <input type="hidden" id="taskId" />
+      <div class="grid">
+        <div class="full">
+          <label for="taskTitle">Título</label>
+          <input id="taskTitle" class="field" required placeholder="Ej.: Ver resultados y preparar informe..." />
+        </div>
+        <div>
+          <label for="taskArea">Categoría / columna</label>
+          <input id="taskArea" class="field" list="areaList" required placeholder="Ej.: Inscripciones" />
+          <datalist id="areaList"></datalist>
+        </div>
+        <div>
+          <label for="taskOwner">Responsable</label>
+          <input id="taskOwner" class="field" placeholder="Ej.: Lucas" />
+        </div>
+        <div>
+          <label for="taskDeadline">Fecha límite</label>
+          <input id="taskDeadline" class="field" type="date" />
+        </div>
+        <div>
+          <label for="taskStatus">Estado</label>
+          <select id="taskStatus" class="field"></select>
+        </div>
+        <div>
+          <label for="taskSubstatus">Subestado</label>
+          <input id="taskSubstatus" class="field" list="substatusList" placeholder="Ej.: Esperando respuesta" />
+          <datalist id="substatusList"></datalist>
+        </div>
+        <div>
+          <label for="taskPriority">Prioridad</label>
+          <select id="taskPriority" class="field">
+            <option value="alta">Alta</option>
+            <option value="media">Media</option>
+            <option value="baja">Baja</option>
+          </select>
+        </div>
+        <div class="full">
+          <label for="taskDescription">Descripción</label>
+          <textarea id="taskDescription" class="field" placeholder="Detalle, notas o próximos pasos..."></textarea>
+        </div>
+        <div class="full">
+          <label for="taskAttachments">Adjuntos</label>
+          <input id="taskAttachments" class="field" type="file" multiple />
+          <div class="hint">Ideal para adjuntos livianos. Se guardan dentro del navegador.</div>
+          <div class="attachment-edit-list" id="attachmentEditList"></div>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn" onclick="document.getElementById('taskDialog').close()">Cancelar</button>
+        <button type="submit" class="btn primary">Guardar tarea</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="configDialog">
+    <form id="configForm" class="modal">
+      <h3>Configurar etiquetas, estados, colores y subestados</h3>
+
+      <div class="config-section">
+        <h4>Estados</h4>
+        <div class="hint">Por defecto: rojo = urgente y no hecha, amarillo = en proceso, verde = realizada. Podés cambiar nombres y colores. El identificador se usa internamente.</div>
+        <div class="status-config-list" id="statusConfigList"></div>
+        <div class="modal-actions" style="justify-content:flex-start;margin-top:10px">
+          <button type="button" class="btn" id="addStatusBtn">+ Agregar estado</button>
+        </div>
+      </div>
+
+      <div class="config-section">
+        <h4>Subestados sugeridos</h4>
+        <div class="hint">Estas opciones aparecen como sugerencias en el formulario de tareas, pero igualmente podés escribir uno nuevo manualmente.</div>
+        <div class="substatus-config-list" id="substatusConfigList"></div>
+        <div class="modal-actions" style="justify-content:flex-start;margin-top:10px">
+          <button type="button" class="btn" id="addSubstatusBtn">+ Agregar subestado</button>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn" onclick="document.getElementById('configDialog').close()">Cancelar</button>
+        <button type="submit" class="btn primary">Guardar configuración</button>
+      </div>
+    </form>
+  </dialog>
+
+
+  <dialog id="integrationDialog">
+    <form id="integrationForm" class="modal">
+      <h3>Firebase y recordatorios</h3>
+      <div class="grid">
+        <div class="full">
+          <label for="firebaseConfig">Configuración Firebase (JSON)</label>
+          <textarea id="firebaseConfig" class="field" placeholder='{"apiKey":"...","authDomain":"...","projectId":"..."}'></textarea>
+          <div class="hint">La app queda preparada para usar Firestore como almacenamiento cuando cargues una configuración válida.</div>
+        </div>
+        <div>
+          <label for="reminderEmail">Correo de recordatorio</label>
+          <input id="reminderEmail" class="field" type="email" value="lucasabraham1996@gmail.com" />
+        </div>
+        <div>
+          <label for="reminderWhatsapp">WhatsApp</label>
+          <input id="reminderWhatsapp" class="field" value="5493515580770" />
+        </div>
+        <div class="full">
+          <label for="reminderEndpoint">Endpoint de Firebase Function</label>
+          <input id="reminderEndpoint" class="field" placeholder="https://...cloudfunctions.net/sendTaskReminder" />
+          <div class="hint">Para enviar correos y WhatsApp automáticamente, la función debe ejecutarse desde Firebase Functions + Cloud Scheduler y conectarse a un proveedor de correo y a WhatsApp Cloud API. El navegador por sí solo no puede enviar recordatorios cuando la app está cerrada.</div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn" onclick="document.getElementById('integrationDialog').close()">Cancelar</button>
+        <button type="submit" class="btn primary">Guardar configuración</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="toast-wrap" id="toastWrap"></div>
+
+  <script>
+    const STORAGE_KEY = "tablero_canvas_advanced_v1";
+    const SETTINGS_KEY = "tablero_canvas_advanced_settings_v1";
+
+    const columnDefs = [
+      {name:"Inscripciones", color:"#7f72f4", icon:"clipboard-list"},
+      {name:"Mejorar inscripciones", color:"#f2a10b", icon:"trending-up"},
+      {name:"Hacer un plan de postventa", color:"#33b566", icon:"heart-handshake"},
+      {name:"Plan Retoma", color:"#ef7777", icon:"refresh-cw"},
+      {name:"Morosos", color:"#4b81d8", icon:"credit-card"},
+      {name:"Rematriculaciones y reinscripciones", color:"#b75082", icon:"book-open-check"},
+      {name:"Programa Puente", color:"#3d8f97", icon:"bridge"},
+      {name:"Día del Estudiante", color:"#cc78d5", icon:"party-popper"},
+      {name:"Bajas", color:"#b51012", icon:"user-minus"},
+      {name:"Satisfacción", color:"#9ab9e4", icon:"message-square-text"},
+      {name:"Jornada de Puertas Abiertas", color:"#d2a472", icon:"door-open"},
+      {name:"No inicios", color:"#ea6967", icon:"pause-circle"},
+      {name:"Pedidos", color:"#c47ca3", icon:"package"},
+      {name:"Acciones Talleres", color:"#1e4f9b", icon:"trophy"},
+      {name:"Becas", color:"#8eb5e0", icon:"graduation-cap"},
+      {name:"Base de datos", color:"#f1a32e", icon:"database"},
+      {name:"Pagos", color:"#6647b8", icon:"wallet-cards"},
+      {name:"Competencia", color:"#6e50b8", icon:"scan-search"},
+      {name:"CCAP", color:"#ad5a86", icon:"landmark"}
+    ];
+
+    const defaultStatuses = [
+      {id:"urgente", label:"Urgente", color:"#e6a4a4"},
+      {id:"en-proceso", label:"En proceso", color:"#ecd88a"},
+      {id:"completada", label:"Realizada", color:"#bfd6b0"},
+      {id:"neutral", label:"Neutral", color:"#d9e2ef"}
+    ];
+
+    const defaultSubstatuses = [
+      "Solicitado",
+      "Esperando respuesta",
+      "Reunión programada",
+      "Rechazado",
+      "En análisis",
+      "Aprobado",
+      "En revisión",
+      "Pausado",
+      "Derivado",
+      "Listo para enviar",
+      "Pendiente de documentación",
+      "Coordinado"
+    ];
+
+    const seedTasks = [
+      {title:"Marcar inscriptos y hablar con asistentes / tirar preinscriptos",area:"Inscripciones",description:"Revisar inscriptos y preinscriptos.",owner:"Lucas",deadline:"",status:"en-proceso",substatus:"En análisis",priority:"alta",attachments:[]},
+      {title:"Ver números con asesoras y corroborar leads nuevos",area:"Inscripciones",description:"Corroborar cómo van los leads nuevos.",owner:"Lucas",deadline:"",status:"completada",substatus:"Aprobado",priority:"media",attachments:[]},
+      {title:"Role play de carreras informáticas con Seba Olmos",area:"Inscripciones",description:"Reunión próxima viernes 17/7.",owner:"Lucas",deadline:"",status:"pendiente",substatus:"Reunión programada",priority:"media",attachments:[]},
+      {title:"Preparar todo para el descuentazo",area:"Inscripciones",description:"Dejar lista la acción.",owner:"Lucas",deadline:"",status:"completada",substatus:"Coordinado",priority:"alta",attachments:[]},
+      {title:"Pedir placa a Adri para extender el descuentazo",area:"Inscripciones",description:"Solicitar pieza gráfica.",owner:"Lucas",deadline:"",status:"completada",substatus:"Solicitado",priority:"media",attachments:[]},
+
+      {title:"Evaluar cómo venimos y ver plan de acción",area:"Mejorar inscripciones",description:"Análisis general del rendimiento.",owner:"Lucas",deadline:"",status:"completada",substatus:"En revisión",priority:"alta",attachments:[]},
+      {title:"Ver con Juan las conversiones",area:"Mejorar inscripciones",description:"Las carreras con mejor conversión y más ingreso de leads.",owner:"Lucas",deadline:"",status:"completada",substatus:"Aprobado",priority:"media",attachments:[]},
+      {title:"Ver con Diego el tema de la inversión en pauta",area:"Mejorar inscripciones",description:"Me dice Diego que es viable, lo verá con Gonzalo.",owner:"Lucas",deadline:"",status:"completada",substatus:"Esperando respuesta",priority:"media",attachments:[]},
+      {title:"Placas para últimos días de julio",area:"Mejorar inscripciones",description:"Solicitar placas promocionales.",owner:"Diego",deadline:"",status:"pendiente",substatus:"Solicitado",priority:"media",attachments:[]},
+      {title:"Pedir link de pagos del 30%",area:"Mejorar inscripciones",description:"Definir el enlace correspondiente.",owner:"Lucas",deadline:"",status:"pendiente",substatus:"Esperando respuesta",priority:"media",attachments:[]},
+
+      {title:"Incluir difusiones de pago a alumnos ya inscriptos",area:"Hacer un plan de postventa",description:"Armar herramientas y materiales para compartirlas.",owner:"Lucas",deadline:"",status:"pendiente",substatus:"En análisis",priority:"alta",attachments:[]},
+      {title:"Ver de incorporar CIES, videos funcionales y plan de pago",area:"Hacer un plan de postventa",description:"Definir acciones para mejorar no inicios.",owner:"Lucas",deadline:"",status:"pendiente",substatus:"Pausado",priority:"media",attachments:[]},
+
+      {title:"Solicitar a Danilo bajas de Retoma y matrículas tardías",area:"Plan Retoma",description:"Ver informe. Esperando envío.",owner:"Danilo",deadline:"",status:"en-proceso",substatus:"Esperando respuesta",priority:"alta",attachments:[]},
+      {title:"Trabajar el plan RETOMA con Vicky y enviar listado",area:"Plan Retoma",description:"Seguimiento del plan.",owner:"Lucas",deadline:"",status:"completada",substatus:"Enviado",priority:"media",attachments:[]},
+
+      {title:"Pisar lista de morosos",area:"Morosos",description:"Revisión inicial.",owner:"Lucas",deadline:"",status:"completada",substatus:"Coordinado",priority:"alta",attachments:[]},
+      {title:"Hacer mailing y difusión diaria con posibilidad de Naranja X",area:"Morosos",description:"Consultado con Adrián y Magui.",owner:"Lucas",deadline:"",status:"en-proceso",substatus:"Solicitado",priority:"alta",attachments:[]},
+      {title:"Nueva difusión ofreciendo quita de intereses",area:"Morosos",description:"Con cuotas sin interés. Placa solicitada.",owner:"Lucas",deadline:"",status:"pendiente",substatus:"Solicitado",priority:"alta",attachments:[]},
+
+      {title:"Pisar padrones de rematriculaciones y reinscripciones",area:"Rematriculaciones y reinscripciones",description:"Revisión completa del padrón.",owner:"Bedelía",deadline:"",status:"completada",substatus:"Aprobado",priority:"alta",attachments:[]},
+      {title:"Hacer difusión de reinscripciones",area:"Rematriculaciones y reinscripciones",description:"Placa solicitada.",owner:"Lucas",deadline:"",status:"pendiente",substatus:"Solicitado",priority:"alta",attachments:[]},
+
+      {title:"Llamar a los colegios para el lunes 20/7",area:"Programa Puente",description:"Con Magui, Alejandra y Rocío para comentar inscripciones abiertas.",owner:"Lucas",deadline:"",status:"completada",substatus:"Coordinado",priority:"alta",attachments:[]},
+      {title:"Ver listado del Colegio General Paz y volver a contactarlos",area:"Programa Puente",description:"Registrar su inscripción.",owner:"Lucas",deadline:"",status:"completada",substatus:"Aprobado",priority:"media",attachments:[]},
+      {title:"Ver lo que mandó Fernando Loza",area:"Programa Puente",description:"Revisión de material.",owner:"Lucas",deadline:"",status:"pendiente",substatus:"En revisión",priority:"baja",attachments:[]},
+
+      {title:"Ver con Sofía y Juan lo que nos toca a cada uno",area:"Día del Estudiante",description:"Coordinar roles.",owner:"Lucas",deadline:"",status:"completada",substatus:"Coordinado",priority:"media",attachments:[]},
+      {title:"Ver stand con Juan: premios, merch y presupuestos",area:"Día del Estudiante",description:"Chequear presupuestos y estaciones de juego.",owner:"Lucas",deadline:"",status:"en-proceso",substatus:"Reunión programada",priority:"alta",attachments:[]},
+
+      {title:"Ver solicitudes de bajas y buscar la retención",area:"Bajas",description:"Primera revisión.",owner:"Lucas",deadline:"",status:"pendiente",substatus:"En análisis",priority:"alta",attachments:[]},
+      {title:"Reunirme con Danilo",area:"Bajas",description:"Reunión de seguimiento.",owner:"Lucas",deadline:"",status:"pendiente",substatus:"Reunión programada",priority:"media",attachments:[]},
+
+      {title:"Ver y procesar encuestas para reunión de consejo",area:"Satisfacción",description:"Análisis estadístico.",owner:"Lucas",deadline:"",status:"completada",substatus:"Aprobado",priority:"alta",attachments:[]},
+      {title:"Preparar informe de la encuesta para reunión académica",area:"Satisfacción",description:"Documento final.",owner:"Lucas",deadline:"",status:"pendiente",substatus:"Esperando respuesta",priority:"alta",attachments:[]},
+
+      {title:"Pedir diseño de folleto para Expo Carreras",area:"Jornada de Puertas Abiertas",description:"Solicitar pieza.",owner:"Comunicación",deadline:"",status:"pendiente",substatus:"Solicitado",priority:"media",attachments:[]},
+
+      {title:"Tener informe para reunión de consejo",area:"No inicios",description:"Informe general.",owner:"Lucas",deadline:"",status:"completada",substatus:"Aprobado",priority:"alta",attachments:[]},
+      {title:"Llamar a alumnos que se dieron de baja y quieren sumarse después",area:"No inicios",description:"Seguimiento telefónico.",owner:"Lucas",deadline:"",status:"pendiente",substatus:"Pendiente de documentación",priority:"alta",attachments:[]},
+
+      {title:"Informe de manual de carreras",area:"Pedidos",description:"Documento solicitado.",owner:"Lucas",deadline:"",status:"completada",substatus:"Enviado",priority:"media",attachments:[]},
+      {title:"Enviar certificado de libre deuda a alumno",area:"Pedidos",description:"Atender solicitud.",owner:"Lucas",deadline:"",status:"completada",substatus:"Coordinado",priority:"media",attachments:[]},
+
+      {title:"Confirmar presencia",area:"Acciones Talleres",description:"Presencia en el evento.",owner:"Lucas",deadline:"",status:"pendiente",substatus:"Esperando respuesta",priority:"alta",attachments:[]},
+
+      {title:"Ver el tema de Sofía Amaya por correo. Tenía el 100%",area:"Becas",description:"Revisión del caso.",owner:"Lucas",deadline:"",status:"pendiente",substatus:"En análisis",priority:"media",attachments:[]},
+
+      {title:"Tirar los ingresantes de qué colegios provienen en los últimos años",area:"Base de datos",description:"Análisis histórico.",owner:"Lucas",deadline:"",status:"completada",substatus:"Aprobado",priority:"media",attachments:[]},
+
+      {title:"Difundir el pago del semestre completo",area:"Pagos",description:"Comunicación general.",owner:"Lucas",deadline:"",status:"pendiente",substatus:"Solicitado",priority:"media",attachments:[]},
+
+      {title:"Hacer relevamiento de competencias",area:"Competencia",description:"Mapeo de competidores.",owner:"Lucas",deadline:"",status:"pendiente",substatus:"En análisis",priority:"media",attachments:[]},
+
+      {title:"Responder consultas",area:"CCAP",description:"Atención pendiente.",owner:"Lucas",deadline:"",status:"pendiente",substatus:"Esperando respuesta",priority:"media",attachments:[]}
+    ];
+
+    let settings = loadSettings();
+    let tasks = loadTasks();
+    let onlyPending = !!settings.onlyPending;
+    let collapsedAreas = new Set(settings.collapsedAreas || []);
+    let compactMode = !!settings.compactMode;
+    let collapseAll = false;
+    let workingAttachments = [];
+
+    const $ = id => document.getElementById(id);
+
+    function loadSettings(){
+      try{
+        const s = JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {};
+        if(!Array.isArray(s.statuses) || !s.statuses.length) s.statuses = defaultStatuses;
+        if(!Array.isArray(s.substatuses) || !s.substatuses.length) s.substatuses = defaultSubstatuses;
+        return s;
+      }catch(e){
+        return {statuses: defaultStatuses, substatuses: defaultSubstatuses};
+      }
+    }
+
+    function saveSettings(){
+      settings.onlyPending = onlyPending;
+      settings.collapsedAreas = [...collapsedAreas];
+      settings.compactMode = compactMode;
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    }
+
+    function loadTasks(){
+      try{
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if(raw) return JSON.parse(raw);
+      }catch(e){}
+      return seedTasks.map(t => ({...t, id:crypto.randomUUID()}));
+    }
+
+    function saveTasks(){
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+    }
+
+    function getStatuses(){
+      return settings.statuses && settings.statuses.length ? settings.statuses : defaultStatuses;
+    }
+
+    function getSubstatuses(){
+      return settings.substatuses && settings.substatuses.length ? settings.substatuses : defaultSubstatuses;
+    }
+
+    function statusById(id){
+      return getStatuses().find(s => s.id === id) || getStatuses()[0] || defaultStatuses[0];
+    }
+
+    function ensureTaskStatuses(){
+      const valid = new Set(getStatuses().map(s => s.id));
+      tasks.forEach(t => {
+        if(!valid.has(t.status)) t.status = getStatuses()[0]?.id || "urgente";
+        if(!Array.isArray(t.attachments)) t.attachments = [];
+      });
+      saveTasks();
+    }
+
+    function esc(v=""){
+      return String(v).replace(/[&<>"']/g, m => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m]));
+    }
+
+    function uniqueAreas(){
+      const seeded = columnDefs.map(c => c.name);
+      const extras = [...new Set(tasks.map(t => t.area).filter(a => !seeded.includes(a)))];
+      return [...seeded, ...extras];
+    }
+
+    function columnInfo(name){
+      return columnDefs.find(c => c.name === name) || {name, color:"#4379ff", icon:"circle-dot"};
+    }
+
+    function parseDate(s){
+      if(!s) return null;
+      const d = new Date(s + "T00:00:00");
+      return isNaN(d.getTime()) ? null : d;
+    }
+
+    function startOfDay(d=new Date()){
+      return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    }
+
+    function dayDiff(s){
+      const d = parseDate(s);
+      if(!d) return null;
+      return Math.round((startOfDay(d) - startOfDay()) / 86400000);
+    }
+
+    function deadlineLabel(s){
+      const diff = dayDiff(s);
+      if(diff === null) return "Sin plazo";
+      if(diff < 0) return `Vencida hace ${Math.abs(diff)} día${Math.abs(diff)===1?"":"s"}`;
+      if(diff === 0) return "Vence hoy";
+      if(diff === 1) return "Vence mañana";
+      return `Vence en ${diff} días`;
+    }
+
+    function priorityLabel(p){
+      return p === "alta" ? "Alta" : p === "baja" ? "Baja" : "Media";
+    }
+
+    function hexToRgb(hex){
+      let clean = String(hex || "").replace("#","").trim();
+      if(clean.length === 3) clean = clean.split("").map(ch => ch + ch).join("");
+      if(clean.length !== 6) return {r:217,g:226,b:239};
+      const num = parseInt(clean, 16);
+      return {r:(num>>16)&255, g:(num>>8)&255, b:num&255};
+    }
+
+    function taskStyle(statusId){
+      const status = statusById(statusId);
+      const {r,g,b} = hexToRgb(status.color);
+      const bg = `rgba(${r},${g},${b},0.33)`;   // leve, no invasivo
+      const border = `rgba(${r},${g},${b},0.72)`;
+      const accent = `rgba(${r},${g},${b},1)`;
+      return `background:${bg}; border-color:${border}; --accent:${accent};`;
+    }
+
+    function colorSwatchStyle(hex, alpha=.33){
+      const {r,g,b} = hexToRgb(hex);
+      return `background:rgba(${r},${g},${b},${alpha}); border-color:rgba(${r},${g},${b},.72);`;
+    }
+
+    function renderLegend(){}
+
+    function renderSelectors(){
+      const areas = uniqueAreas();
+      const statuses = getStatuses();
+      const substatuses = getSubstatuses();
+
+      const currentArea = $("areaFilter").value;
+      $("areaFilter").innerHTML = `<option value="">Todas las categorías</option>` + areas.map(a => `<option value="${esc(a)}">${esc(a)}</option>`).join("");
+      $("areaFilter").value = areas.includes(currentArea) ? currentArea : "";
+
+      const currentStatus = $("statusFilter").value;
+      $("statusFilter").innerHTML = `<option value="">Todos los estados</option>` + statuses.map(s => `<option value="${esc(s.id)}">${esc(s.label)}</option>`).join("");
+      $("statusFilter").value = statuses.some(s => s.id === currentStatus) ? currentStatus : "";
+
+      const currentSubstatus = $("substatusFilter").value;
+      const uniqueSub = [...new Set(substatuses.concat(tasks.map(t => t.substatus).filter(Boolean)))];
+      $("substatusFilter").innerHTML = `<option value="">Todos los subestados</option>` + uniqueSub.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join("");
+      $("substatusFilter").value = uniqueSub.includes(currentSubstatus) ? currentSubstatus : "";
+
+      $("areaList").innerHTML = areas.map(a => `<option value="${esc(a)}"></option>`).join("");
+      $("taskStatus").innerHTML = statuses.map(s => `<option value="${esc(s.id)}">${esc(s.label)}</option>`).join("");
+      $("substatusList").innerHTML = uniqueSub.map(s => `<option value="${esc(s)}"></option>`).join("");
+    }
+
+    function filteredTasks(){
+      const q = $("searchInput").value.trim().toLowerCase();
+      const area = $("areaFilter").value;
+      const status = $("statusFilter").value;
+      const substatus = $("substatusFilter").value;
+      const deadline = $("deadlineFilter").value;
+
+      return tasks.filter(t => {
+        if(onlyPending && t.status === "completada") return false;
+        if(area && t.area !== area) return false;
+        if(status && t.status !== status) return false;
+        if(substatus && (t.substatus || "") !== substatus) return false;
+
+        const hay = [t.title, t.description, t.owner, t.area, t.substatus].join(" ").toLowerCase();
+        if(q && !hay.includes(q)) return false;
+
+        if(deadline){
+          const diff = dayDiff(t.deadline);
+          if(deadline === "overdue" && !(diff !== null && diff < 0 && t.status !== "completada")) return false;
+          if(deadline === "today" && !(diff === 0 && t.status !== "completada")) return false;
+          if(deadline === "week" && !(diff !== null && diff >= 0 && diff <= 7 && t.status !== "completada")) return false;
+          if(deadline === "none" && t.deadline) return false;
+        }
+
+        return true;
+      });
+    }
+
+    function attachmentListHtml(attachments){
+      if(!attachments || !attachments.length) return "";
+      return `<div class="attachment-list">
+        ${attachments.map((a, idx) => `
+          <div class="attachment-item">
+            <span><i data-lucide="paperclip"></i></span>
+            <a href="${a.data}" download="${esc(a.name)}" title="${esc(a.name)}">${esc(a.name)}</a>
+          </div>
+        `).join("")}
+      </div>`;
+    }
+
+    function taskCard(t){
+      const due = t.deadline && dayDiff(t.deadline) !== null && dayDiff(t.deadline) <= 0 && t.status !== "completada";
+      const status = statusById(t.status);
+      return `
+        <article class="task ${t.status === "completada" ? "done" : ""} ${due ? "overdue" : ""}" style="${taskStyle(t.status)}">
+          <div class="task-top">
+            <input class="check" type="checkbox" ${t.status === "completada" ? "checked" : ""} onchange="toggleDone('${t.id}', this.checked)" />
+            <div class="task-main">
+              <div class="task-title">${esc(t.title)}</div>
+              ${t.description ? `<div class="task-desc">${esc(t.description)}</div>` : ""}
+              <div class="task-tags">
+                <span class="tag status-chip">${esc(status.label)}</span>
+                ${t.substatus ? `<span class="tag">${esc(t.substatus)}</span>` : ""}
+                <span class="tag"><i data-lucide="calendar-days"></i> ${esc(deadlineLabel(t.deadline))}</span>
+                <span class="tag">Prioridad ${priorityLabel(t.priority)}</span>
+                ${t.owner ? `<span class="tag"><i data-lucide="user-round"></i> ${esc(t.owner)}</span>` : ""}
+              </div>
+              ${attachmentListHtml(t.attachments)}
+            </div>
+          </div>
+          <div class="task-actions">
+            <button class="mini" onclick="editTask('${t.id}')">Editar</button>
+            <button class="mini" onclick="duplicateTask('${t.id}')">Duplicar</button>
+            <button class="mini" onclick="deleteTask('${t.id}')">Eliminar</button>
+          </div>
+        </article>
+      `;
+    }
+
+    function slug(text){
+      return text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    }
+
+    function renderStats(){
+      $("statTotal").textContent = tasks.length;
+      $("statPending").textContent = tasks.filter(t => t.status === "urgente").length;
+      $("statProgress").textContent = tasks.filter(t => t.status === "en-proceso").length;
+      $("statDone").textContent = tasks.filter(t => t.status === "completada").length;
+
+      const due = tasks.filter(t => t.status !== "completada" && t.deadline && dayDiff(t.deadline) !== null && dayDiff(t.deadline) <= 0).length;
+      $("statDue").textContent = due;
+
+      const bar = $("alertBar");
+      if(due > 0){
+        bar.classList.add("show");
+        bar.innerHTML = `Tenés <b>${due}</b> tarea${due===1?"":"s"} vencida${due===1?"":"s"} o con vencimiento hoy.`;
+      }else{
+        bar.classList.remove("show");
+        bar.innerHTML = "";
+      }
+    }
+
+    function renderBoard(){
+      ensureTaskStatuses();
+      renderSelectors();
+
+      document.getElementById("app").classList.toggle("compact", compactMode);
+
+      const rows = filteredTasks();
+      const areas = uniqueAreas();
+      const board = $("board");
+
+      board.innerHTML = areas.map(area => {
+        const info = columnInfo(area);
+        const items = rows.filter(t => t.area === area);
+        if(items.length === 0 && (onlyPending || $("searchInput").value || $("areaFilter").value || $("statusFilter").value || $("substatusFilter").value || $("deadlineFilter").value)) return "";
+        const pendingCount = tasks.filter(t => t.area === area && t.status !== "completada").length;
+        const collapsed = collapsedAreas.has(area);
+
+        return `
+          <section class="column ${collapsed ? "collapsed" : ""}">
+            <div class="col-head">
+              <div class="col-main" style="background:${info.color}">
+                <div class="col-left">
+                  <span class="lucide-col"><i data-lucide="${info.icon}"></i></span>
+                  <div class="col-title">
+                    <span class="col-title-text">${esc(area)}</span>
+                    <div class="count">${pendingCount} pendiente${pendingCount===1?"":"s"}</div>
+                  </div>
+                </div>
+                <button class="collapse" onclick="toggleColumn('${encodeURIComponent(area)}')" title="Contraer / expandir">${collapsed ? "+" : "−"}</button>
+              </div>
+            </div>
+            <div class="column-body">
+              <div class="quick-add">
+                <input id="quick-${slug(area)}" class="field" placeholder="Agregar tarea rápida..." />
+                <button class="btn" onclick="quickAdd('${encodeURIComponent(area)}')">Agregar</button>
+              </div>
+              <div class="task-list">
+                ${items.length ? items.map(taskCard).join("") : `<div class="empty">Sin tareas para mostrar.</div>`}
+              </div>
+              <div class="column-footer">
+                <button class="btn" onclick="openTaskDialog('${encodeURIComponent(area)}')">+ Nueva tarea en esta columna</button>
+              </div>
+            </div>
+          </section>
+        `;
+      }).join("");
+
+      renderStats();
+
+      $("pendingBtn").classList.toggle("active", onlyPending);
+      
+
+      $("compactBtn").classList.toggle("active", compactMode);
+      $("compactBtn").innerHTML = compactMode ? '<i data-lucide="columns-3"></i> Vista simple activada' : '<i data-lucide="columns-3"></i> Vista compacta';
+      $("pendingBtn").innerHTML = onlyPending ? '<i data-lucide="list-filter"></i> Mostrando solo no realizadas' : '<i data-lucide="list-filter"></i> Solo no realizadas';
+      setTimeout(()=>{ setupSyncedScrollbars(); refreshIcons(); },0);
+    }
+
+    function openTaskDialog(areaEncoded=""){
+      $("taskForm").reset();
+      $("taskId").value = "";
+      $("taskDialogTitle").textContent = "Nueva tarea";
+      $("taskArea").value = areaEncoded ? decodeURIComponent(areaEncoded) : "";
+      $("taskStatus").value = getStatuses()[0]?.id || "urgente";
+      $("taskPriority").value = "media";
+      $("taskSubstatus").value = "";
+      workingAttachments = [];
+      $("attachmentEditList").innerHTML = "";
+      $("taskAttachments").value = "";
+      $("taskDialog").showModal();
+    }
+
+    function renderAttachmentEditor(){
+      const box = $("attachmentEditList");
+      box.innerHTML = workingAttachments.length ? workingAttachments.map((a, idx) => `
+        <div class="attachment-edit-item">
+          <span><i data-lucide="paperclip"></i> ${esc(a.name)}</span>
+          <button type="button" class="mini" onclick="removeWorkingAttachment(${idx})">Quitar</button>
+        </div>
+      `).join("") : `<div class="hint">Todavía no hay adjuntos cargados.</div>`;
+    }
+
+    function removeWorkingAttachment(index){
+      workingAttachments.splice(index, 1);
+      renderAttachmentEditor();
+    }
+
+    async function filesToAttachments(fileList){
+      const files = [...fileList];
+      return Promise.all(files.map(file => new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve({
+          name:file.name,
+          type:file.type,
+          size:file.size,
+          data:reader.result
+        });
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(file);
+      })));
+    }
+
+    $("taskAttachments").addEventListener("change", async e => {
+      const files = e.target.files;
+      if(!files || !files.length) return;
+      try{
+        const data = await filesToAttachments(files);
+        workingAttachments = workingAttachments.concat(data);
+        renderAttachmentEditor();
+        $("taskAttachments").value = "";
+        toast("Adjunto agregado");
+      }catch(err){
+        console.error(err);
+        toast("No se pudo leer el adjunto");
+      }
+    });
+
+    function editTask(id){
+      const task = tasks.find(t => t.id === id);
+      if(!task) return;
+      $("taskId").value = task.id;
+      $("taskTitle").value = task.title || "";
+      $("taskArea").value = task.area || "";
+      $("taskOwner").value = task.owner || "";
+      $("taskDeadline").value = task.deadline || "";
+      $("taskStatus").value = task.status || getStatuses()[0]?.id || "urgente";
+      $("taskSubstatus").value = task.substatus || "";
+      $("taskPriority").value = task.priority || "media";
+      $("taskDescription").value = task.description || "";
+      workingAttachments = Array.isArray(task.attachments) ? [...task.attachments] : [];
+      renderAttachmentEditor();
+      $("taskAttachments").value = "";
+      $("taskDialogTitle").textContent = "Editar tarea";
+      $("taskDialog").showModal();
+    }
+
+    function deleteTask(id){
+      if(!confirm("¿Eliminar esta tarea?")) return;
+      tasks = tasks.filter(t => t.id !== id);
+      saveTasksCloudReady();
+      queueReminderSync();
+      renderBoard();
+    setTimeout(()=>{ refreshIcons(); setupSyncedScrollbars(); initializeFirebaseIfConfigured(); },50);
+      toast("Tarea eliminada");
+    }
+
+    function duplicateTask(id){
+      const task = tasks.find(t => t.id === id);
+      if(!task) return;
+      tasks.push({...task, id:crypto.randomUUID(), title: task.title + " (copia)"});
+      saveTasksCloudReady();
+      queueReminderSync();
+      renderBoard();
+      toast("Tarea duplicada");
+    }
+
+    function toggleDone(id, checked){
+      const task = tasks.find(t => t.id === id);
+      if(!task) return;
+      task.status = checked ? "completada" : (getStatuses()[0]?.id || "pendiente");
+      saveTasksCloudReady();
+      queueReminderSync();
+      renderBoard();
+    }
+
+    function toggleColumn(areaEncoded){
+      const area = decodeURIComponent(areaEncoded);
+      if(collapsedAreas.has(area)) collapsedAreas.delete(area);
+      else collapsedAreas.add(area);
+      saveSettings();
+      renderBoard();
+    }
+
+    function quickAdd(areaEncoded){
+      const area = decodeURIComponent(areaEncoded);
+      const input = document.getElementById("quick-" + slug(area));
+      if(!input) return;
+      const title = input.value.trim();
+      if(!title) return;
+
+      tasks.push({
+        id:crypto.randomUUID(),
+        title,
+        area,
+        owner:"",
+        deadline:"",
+        status:getStatuses()[0]?.id || "urgente",
+        substatus:"",
+        priority:"media",
+        description:"",
+        attachments:[]
+      });
+
+      input.value = "";
+      saveTasksCloudReady();
+      queueReminderSync();
+      renderBoard();
+      toast("Tarea agregada");
+    }
+
+    $("taskForm").addEventListener("submit", e => {
+      e.preventDefault();
+      const id = $("taskId").value;
+      const data = {
+        id: id || crypto.randomUUID(),
+        title: $("taskTitle").value.trim(),
+        area: $("taskArea").value.trim(),
+        owner: $("taskOwner").value.trim(),
+        deadline: $("taskDeadline").value,
+        status: $("taskStatus").value,
+        substatus: $("taskSubstatus").value.trim(),
+        priority: $("taskPriority").value,
+        description: $("taskDescription").value.trim(),
+        attachments: [...workingAttachments]
+      };
+
+      if(!data.title || !data.area){
+        toast("Completá al menos el título y la categoría");
+        return;
+      }
+
+      if(id){
+        tasks = tasks.map(t => t.id === id ? data : t);
+        toast("Tarea actualizada");
+      }else{
+        tasks.push(data);
+        toast("Tarea creada");
+      }
+
+      saveTasksCloudReady();
+      queueReminderSync();
+      $("taskDialog").close();
+      renderBoard();
+    });
+
+    function renderConfigDialog(){
+      const statusBox = $("statusConfigList");
+      const subBox = $("substatusConfigList");
+
+      statusBox.innerHTML = getStatuses().map((s, i) => `
+        <div class="config-row">
+          <input class="field status-label" data-index="${i}" value="${esc(s.label)}" placeholder="Etiqueta" />
+          <input class="field status-id" data-index="${i}" value="${esc(s.id)}" placeholder="id" />
+          <input type="color" class="field status-color" data-index="${i}" value="${esc(normalizeColor(s.color))}" />
+          <button type="button" class="btn" onclick="removeStatusRow(${i})">Quitar</button>
+        </div>
+      `).join("");
+
+      subBox.innerHTML = getSubstatuses().map((s, i) => `
+        <div class="config-row sub">
+          <input class="field substatus-label" data-index="${i}" value="${esc(s)}" placeholder="Subestado" />
+          <button type="button" class="btn" onclick="removeSubstatusRow(${i})">Quitar</button>
+        </div>
+      `).join("");
+    }
+
+    function normalizeColor(c){
+      const s = String(c || "").trim();
+      if(/^#[0-9a-fA-F]{6}$/.test(s)) return s;
+      if(/^#[0-9a-fA-F]{3}$/.test(s)) return "#" + s.slice(1).split("").map(ch => ch + ch).join("");
+      return "#d9e2ef";
+    }
+
+    function removeStatusRow(index){
+      if(getStatuses().length <= 1){
+        toast("Debe quedar al menos un estado");
+        return;
+      }
+      settings.statuses.splice(index, 1);
+      renderConfigDialog();
+    }
+
+    function removeSubstatusRow(index){
+      settings.substatuses.splice(index, 1);
+      renderConfigDialog();
+    }
+
+    $("addStatusBtn").addEventListener("click", () => {
+      settings.statuses.push({
+        id: "nuevo-" + Math.random().toString(36).slice(2,6),
+        label: "Nuevo estado",
+        color: "#d9e2ef"
+      });
+      renderConfigDialog();
+    });
+
+    $("addSubstatusBtn").addEventListener("click", () => {
+      settings.substatuses.push("Nuevo subestado");
+      renderConfigDialog();
+    });
+
+    $("configBtn").addEventListener("click", () => {
+      renderConfigDialog();
+      $("configDialog").showModal();
+    });
+
+    $("configForm").addEventListener("submit", e => {
+      e.preventDefault();
+
+      const labels = [...document.querySelectorAll(".status-label")];
+      const ids = [...document.querySelectorAll(".status-id")];
+      const colors = [...document.querySelectorAll(".status-color")];
+      const newStatuses = [];
+
+      labels.forEach((input, i) => {
+        const label = input.value.trim();
+        const id = ids[i].value.trim().toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+        const color = colors[i].value;
+        if(label && id){
+          newStatuses.push({id, label, color});
+        }
+      });
+
+      if(!newStatuses.length){
+        toast("Cargá al menos un estado");
+        return;
+      }
+
+      const newSubstatuses = [...document.querySelectorAll(".substatus-label")]
+        .map(i => i.value.trim())
+        .filter(Boolean);
+
+      const prevMap = new Map(getStatuses().map(s => [s.id, s.id]));
+      const oldFirst = getStatuses()[0]?.id || "pendiente";
+      const newFirst = newStatuses[0].id;
+
+      tasks = tasks.map(t => {
+        if(newStatuses.some(s => s.id === t.status)) return t;
+        return {...t, status: newFirst};
+      });
+
+      settings.statuses = newStatuses;
+      settings.substatuses = newSubstatuses.length ? newSubstatuses : defaultSubstatuses;
+      saveSettings();
+      saveTasksCloudReady();
+      $("configDialog").close();
+      renderBoard();
+      toast("Configuración actualizada");
+    });
+
+
+    $("integrationBtn").addEventListener("click", () => {
+      $("firebaseConfig").value = settings.firebaseConfig || "";
+      $("reminderEmail").value = settings.reminderEmail || "lucasabraham1996@gmail.com";
+      $("reminderWhatsapp").value = settings.reminderWhatsapp || "5493515580770";
+      $("reminderEndpoint").value = settings.reminderEndpoint || "";
+      $("integrationDialog").showModal();
+    });
+
+    $("integrationForm").addEventListener("submit", async e => {
+      e.preventDefault();
+      const firebaseRaw = $("firebaseConfig").value.trim();
+      if(firebaseRaw){
+        try{ JSON.parse(firebaseRaw); }
+        catch{ toast("La configuración Firebase no es un JSON válido"); return; }
+      }
+      settings.firebaseConfig = firebaseRaw;
+      settings.reminderEmail = $("reminderEmail").value.trim();
+      settings.reminderWhatsapp = $("reminderWhatsapp").value.trim();
+      settings.reminderEndpoint = $("reminderEndpoint").value.trim();
+      saveSettings();
+      $("integrationDialog").close();
+      await initializeFirebaseIfConfigured();
+      queueReminderSync();
+      toast("Configuración guardada");
+    });
+
+    $("newTaskBtn").addEventListener("click", () => openTaskDialog());
+
+    $("pendingBtn").addEventListener("click", () => {
+      onlyPending = !onlyPending;
+      saveSettings();
+      renderBoard();
+    });
+
+    $("compactBtn").addEventListener("click", () => {
+      compactMode = !compactMode;
+      saveSettings();
+      renderBoard();
+    });
+
+    $("collapseBtn").addEventListener("click", () => {
+      collapseAll = !collapseAll;
+      if(collapseAll){
+        collapsedAreas = new Set(uniqueAreas());
+        $("collapseBtn").textContent = "Expandir todo";
+      }else{
+        collapsedAreas = new Set();
+        $("collapseBtn").textContent = "Contraer todo";
+      }
+      saveSettings();
+      renderBoard();
+    });
+
+    ["searchInput","areaFilter","statusFilter","substatusFilter","deadlineFilter"].forEach(id => {
+      $(id).addEventListener(id === "searchInput" ? "input" : "change", renderBoard);
+    });
+
+    $("clearFiltersBtn").addEventListener("click", () => {
+      $("searchInput").value = "";
+      $("areaFilter").value = "";
+      $("statusFilter").value = "";
+      $("substatusFilter").value = "";
+      $("deadlineFilter").value = "";
+      renderBoard();
+    });
+
+
+    function refreshIcons(){
+      if(window.lucide) window.lucide.createIcons();
+    }
+
+    function setupSyncedScrollbars(){
+      const board = $("board");
+      const top = $("topScroll");
+      const inner = $("topScrollInner");
+      if(!board || !top || !inner) return;
+      inner.style.width = board.scrollWidth + "px";
+      let syncing = false;
+      top.onscroll = () => {
+        if(syncing) return;
+        syncing = true;
+        board.scrollLeft = top.scrollLeft;
+        requestAnimationFrame(()=>syncing=false);
+      };
+      board.onscroll = () => {
+        if(syncing) return;
+        syncing = true;
+        top.scrollLeft = board.scrollLeft;
+        requestAnimationFrame(()=>syncing=false);
+      };
+    }
+
+    async function initializeFirebaseIfConfigured(){
+      const raw = settings.firebaseConfig;
+      if(!raw || !window.initCanvasFirebase) return;
+      try{
+        const config = typeof raw === "string" ? JSON.parse(raw) : raw;
+        const db = await window.initCanvasFirebase(config);
+        if(db && settings.loadFromFirestore){
+          const remote = await window.loadTasksFromFirestore();
+          if(Array.isArray(remote) && remote.length){
+            tasks = remote;
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+            renderBoard();
+          }
+        }
+      }catch(err){
+        console.error(err);
+      }
+    }
+
+    function saveTasksCloudReady(){
+      saveTasks();
+      if(window.canvasFirestore && window.syncTasksToFirestore){
+        window.syncTasksToFirestore(tasks).catch(console.error);
+      }
+    }
+
+    function queueReminderSync(){
+      const endpoint = settings.reminderEndpoint;
+      if(!endpoint) return;
+      const payload = {
+        email: settings.reminderEmail || "lucasabraham1996@gmail.com",
+        whatsapp: settings.reminderWhatsapp || "5493515580770",
+        tasks: tasks.filter(t => t.deadline && t.status !== "completada")
+      };
+      fetch(endpoint, {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify(payload)
+      }).catch(err => console.error("Reminder endpoint:", err));
+    }
+
+    function toast(message){
+      const el = document.createElement("div");
+      el.className = "toast";
+      el.textContent = message;
+      $("toastWrap").appendChild(el);
+      setTimeout(() => el.remove(), 3200);
+    }
+
+    window.openTaskDialog = openTaskDialog;
+    window.editTask = editTask;
+    window.deleteTask = deleteTask;
+    window.duplicateTask = duplicateTask;
+    window.toggleDone = toggleDone;
+    window.quickAdd = quickAdd;
+    window.toggleColumn = toggleColumn;
+    window.removeWorkingAttachment = removeWorkingAttachment;
+    window.removeStatusRow = removeStatusRow;
+    window.removeSubstatusRow = removeSubstatusRow;
+
+    renderBoard();
+
+    const todayKey = new Date().toISOString().slice(0,10);
+    const dueCount = tasks.filter(t => t.status !== "completada" && t.deadline && dayDiff(t.deadline) !== null && dayDiff(t.deadline) <= 0).length;
+    if(dueCount && localStorage.getItem("lastDueToastAdvanced") !== todayKey){
+      toast(`Tenés ${dueCount} tareas vencidas o con vencimiento hoy`);
+      localStorage.setItem("lastDueToastAdvanced", todayKey);
+    }
+  </script>
+
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
+    import { getFirestore, collection, getDocs, setDoc, doc } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
+
+    window.initCanvasFirebase = async function(config){
+      try{
+        if(!config || !config.projectId) return null;
+        const app = initializeApp(config);
+        const db = getFirestore(app);
+        window.canvasFirestore = db;
+        return db;
+      }catch(err){
+        console.error("Firebase:", err);
+        return null;
+      }
+    };
+
+    window.syncTasksToFirestore = async function(tasks){
+      const db = window.canvasFirestore;
+      if(!db) return false;
+      for(const task of tasks){
+        await setDoc(doc(db, "canvas_tasks", task.id), task);
+      }
+      return true;
+    };
+
+    window.loadTasksFromFirestore = async function(){
+      const db = window.canvasFirestore;
+      if(!db) return null;
+      const snap = await getDocs(collection(db, "canvas_tasks"));
+      return snap.docs.map(d => ({id:d.id, ...d.data()}));
+    };
+  </script>
+
+</body>
+</html>
