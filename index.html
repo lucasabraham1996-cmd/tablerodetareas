@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html>
 <html lang="es" translate="no" class="notranslate">
 <head>
@@ -614,15 +616,17 @@
 
     .floating-due-alert{
       position:fixed;
-      top:18px;
+      bottom:18px;
       right:18px;
       z-index:120;
       width:min(390px,calc(100% - 28px));
       border-radius:16px;
       padding:14px;
-      background:rgba(255,255,255,.97);
-      border:1px solid #e7b1b1;
-      box-shadow:0 18px 46px rgba(65,24,24,.18);
+      background:
+        linear-gradient(#fff,#fff) padding-box,
+        linear-gradient(135deg,#4c7dff,#8b5cf6,#ec4899,#f59e0b,#22c55e) border-box;
+      border:3px solid transparent;
+      box-shadow:0 18px 46px rgba(42,48,88,.22);
       display:none;
       animation:floatIn .22s ease;
     }
@@ -638,12 +642,12 @@
       align-items:center;
       gap:9px;
       font-weight:800;
-      color:#842a2a;
+      color:#4338ca;
     }
     .floating-due-title svg{width:19px;height:19px}
     .floating-due-alert p{
       margin:8px 0 0;
-      color:#5d3a3a;
+      color:#4b5563;
       font-size:.84rem;
       line-height:1.45;
     }
@@ -658,20 +662,20 @@
     .floating-due-item{
       padding:7px 9px;
       border-radius:9px;
-      background:#fff3f3;
-      border:1px solid #efcccc;
+      background:linear-gradient(135deg,rgba(76,125,255,.10),rgba(236,72,153,.08),rgba(245,158,11,.10));
+      border:1px solid rgba(124,105,239,.24);
       font-size:.8rem;
-      color:#633636;
+      color:#374151;
     }
     .floating-close{
       width:28px;height:28px;
       border:none;border-radius:8px;
-      background:#fff0f0;color:#842a2a;cursor:pointer;
+      background:linear-gradient(135deg,#eef2ff,#fdf2f8);color:#6d28d9;cursor:pointer;
       display:grid;place-items:center;
     }
     .floating-close svg{width:15px;height:15px}
     @keyframes floatIn{
-      from{opacity:0;transform:translateY(-10px)}
+      from{opacity:0;transform:translateY(18px)}
       to{opacity:1;transform:translateY(0)}
     }
 
@@ -819,6 +823,23 @@
           <input id="taskOwner" class="field" placeholder="Ej.: Lucas" />
         </div>
         <div>
+          <label for="taskRelationType">Acción con otra persona</label>
+          <select id="taskRelationType" class="field">
+            <option value="">Sin especificar</option>
+            <option value="Pedir a">Pedir a</option>
+            <option value="Juntarme con">Juntarme con</option>
+            <option value="Hablar con">Hablar con</option>
+            <option value="Esperar respuesta de">Esperar respuesta de</option>
+            <option value="Enviar a">Enviar a</option>
+            <option value="Coordinar con">Coordinar con</option>
+            <option value="Delegar a">Delegar a</option>
+          </select>
+        </div>
+        <div>
+          <label for="taskRelationPerson">Persona / área</label>
+          <input id="taskRelationPerson" class="field" placeholder="Ej.: Diego, Bedelía..." />
+        </div>
+        <div>
           <label for="taskDeadline">Fecha límite</label>
           <input id="taskDeadline" class="field" type="date" />
         </div>
@@ -838,6 +859,14 @@
             <option value="media">Media</option>
             <option value="baja">Baja</option>
           </select>
+        </div>
+        <div>
+          <label for="taskDaily">Repetición</label>
+          <label class="field" style="display:flex;align-items:center;gap:9px;cursor:pointer;color:var(--text)">
+            <input id="taskDaily" type="checkbox" />
+            Tarea diaria
+          </label>
+          <div class="hint">Al completarla, mañana volverá con su estado y color predeterminados.</div>
         </div>
         <div class="full">
           <label for="taskDescription">Descripción</label>
@@ -1015,6 +1044,7 @@
     let columnDefs = [];
 
     const defaultStatuses = [
+      {id:"sin-comenzar", label:"Sin comenzar", color:"#d9e2ef"},
       {id:"urgente", label:"Urgente", color:"#e6a4a4"},
       {id:"en-proceso", label:"En proceso", color:"#ecd88a"},
       {id:"completada", label:"Realizada", color:"#bfd6b0"},
@@ -1110,7 +1140,8 @@
     function loadSettings(){
       try{
         const s = JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {};
-        if(!Array.isArray(s.statuses) || !s.statuses.length) s.statuses = defaultStatuses;
+        if(!Array.isArray(s.statuses) || !s.statuses.length) s.statuses = defaultStatuses.map(x => ({...x}));
+        if(!s.statuses.some(x => x.id === "sin-comenzar")) s.statuses.unshift({...defaultStatuses[0]});
         if(!Array.isArray(s.substatuses) || !s.substatuses.length) s.substatuses = defaultSubstatuses;
         if(!s.firebaseConfig) s.firebaseConfig = JSON.stringify(DEFAULT_FIREBASE_CONFIG, null, 2);
         if(!Array.isArray(s.categories) || !s.categories.length) s.categories = defaultColumnDefs.map(c => ({...c}));
@@ -1157,6 +1188,10 @@
       tasks.forEach(t => {
         if(!valid.has(t.status)) t.status = getStatuses()[0]?.id || "urgente";
         if(!Array.isArray(t.attachments)) t.attachments = [];
+        if(typeof t.daily !== "boolean") t.daily = false;
+        if(!t.relationType) t.relationType = "";
+        if(!t.relationPerson) t.relationPerson = "";
+        if(t.daily && !t.dailyDefaultStatus) t.dailyDefaultStatus = t.status === "completada" ? "sin-comenzar" : t.status;
       });
       saveTasks();
     }
@@ -1183,6 +1218,27 @@
 
     function startOfDay(d=new Date()){
       return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    }
+
+    function localDateKey(d=new Date()){
+      const y = d.getFullYear();
+      const m = String(d.getMonth()+1).padStart(2,"0");
+      const day = String(d.getDate()).padStart(2,"0");
+      return `${y}-${m}-${day}`;
+    }
+
+    function resetDailyTasks(){
+      const today = localDateKey();
+      let changed = false;
+      tasks.forEach(t => {
+        if(!t.daily) return;
+        if(t.status === "completada" && t.completedOn && t.completedOn !== today){
+          t.status = t.dailyDefaultStatus || "sin-comenzar";
+          t.completedOn = "";
+          changed = true;
+        }
+      });
+      if(changed) saveTasksCloudReady();
     }
 
     function dayDiff(s){
@@ -1264,7 +1320,7 @@
         if(status && t.status !== status) return false;
         if(substatus && (t.substatus || "") !== substatus) return false;
 
-        const hay = [t.title, t.description, t.owner, t.area, t.substatus].join(" ").toLowerCase();
+        const hay = [t.title, t.description, t.owner, t.relationType, t.relationPerson, t.area, t.substatus].join(" ").toLowerCase();
         if(q && !hay.includes(q)) return false;
 
         if(deadline){
@@ -1307,7 +1363,9 @@
                 ${t.categoryMode === "auto" ? `<span class="tag"><i data-lucide="sparkles"></i> Categoría detectada</span>` : ""}
                 ${t.deadline ? `<span class="tag"><i data-lucide="calendar-days"></i> ${esc(deadlineLabel(t.deadline))}</span>` : ""}
                 ${t.priority ? `<span class="tag">Prioridad ${priorityLabel(t.priority)}</span>` : ""}
-                ${t.owner ? `<span class="tag"><i data-lucide="user-round"></i> ${esc(t.owner)}</span>` : ""}
+                ${t.owner ? `<span class="tag"><i data-lucide="user-round"></i> Responsable: ${esc(t.owner)}</span>` : ""}
+                ${t.relationType && t.relationPerson ? `<span class="tag"><i data-lucide="users-round"></i> ${esc(t.relationType)} ${esc(t.relationPerson)}</span>` : ""}
+                ${t.daily ? `<span class="tag"><i data-lucide="repeat-2"></i> Diaria</span>` : ""}
               </div>
               ${attachmentListHtml(t.attachments)}
             </div>
@@ -1468,6 +1526,7 @@
     }
 
     function renderBoard(){
+      resetDailyTasks();
       ensureTaskStatuses();
       renderSelectors();
 
@@ -1532,8 +1591,11 @@
       $("taskArea").value = areaEncoded ? decodeURIComponent(areaEncoded) : "";
       $("categoryMode").value = areaEncoded ? "manual" : "auto";
       updateCategoryModeUI();
-      $("taskStatus").value = getStatuses()[0]?.id || "urgente";
+      $("taskStatus").value = "sin-comenzar";
       $("taskPriority").value = "media";
+      $("taskRelationType").value = "";
+      $("taskRelationPerson").value = "";
+      $("taskDaily").checked = false;
       $("taskSubstatus").value = "";
       workingAttachments = [];
       $("attachmentEditList").innerHTML = "";
@@ -1601,6 +1663,9 @@
       $("categoryMode").value = task.categoryMode || "manual";
       updateCategoryModeUI();
       $("taskOwner").value = task.owner || "";
+      $("taskRelationType").value = task.relationType || "";
+      $("taskRelationPerson").value = task.relationPerson || "";
+      $("taskDaily").checked = !!task.daily;
       $("taskDeadline").value = task.deadline || "";
       $("taskStatus").value = task.status || getStatuses()[0]?.id || "urgente";
       $("taskSubstatus").value = task.substatus || "";
@@ -1627,7 +1692,7 @@
     function duplicateTask(id){
       const task = tasks.find(t => t.id === id);
       if(!task) return;
-      tasks.push({...task, id:crypto.randomUUID(), title: task.title + " (copia)"});
+      tasks.push({...task, id:crypto.randomUUID(), title: task.title + " (copia)", completedOn:""});
       saveTasksCloudReady();
       queueReminderSync();
       renderBoard();
@@ -1637,7 +1702,14 @@
     function toggleDone(id, checked){
       const task = tasks.find(t => t.id === id);
       if(!task) return;
-      task.status = checked ? "completada" : (getStatuses()[0]?.id || "pendiente");
+      if(checked){
+        if(task.daily && !task.dailyDefaultStatus) task.dailyDefaultStatus = task.status === "completada" ? "sin-comenzar" : task.status;
+        task.status = "completada";
+        task.completedOn = localDateKey();
+      }else{
+        task.status = task.daily ? (task.dailyDefaultStatus || "sin-comenzar") : "sin-comenzar";
+        task.completedOn = "";
+      }
       saveTasksCloudReady();
       queueReminderSync();
       renderBoard();
@@ -1663,8 +1735,13 @@
         title,
         area,
         owner:"",
+        relationType:"",
+        relationPerson:"",
+        daily:false,
+        dailyDefaultStatus:"sin-comenzar",
+        completedOn:"",
         deadline:"",
-        status:getStatuses()[0]?.id || "urgente",
+        status:"sin-comenzar",
         substatus:"",
         priority:"media",
         description:"",
@@ -1693,6 +1770,11 @@
         area: categoryMode === "auto" ? detectedArea : $("taskArea").value.trim(),
         categoryMode,
         owner: $("taskOwner").value.trim(),
+        relationType: $("taskRelationType").value,
+        relationPerson: $("taskRelationPerson").value.trim(),
+        daily: $("taskDaily").checked,
+        dailyDefaultStatus: $("taskDaily").checked ? ($("taskStatus").value === "completada" ? "sin-comenzar" : $("taskStatus").value) : "",
+        completedOn: $("taskStatus").value === "completada" ? localDateKey() : "",
         deadline: $("taskDeadline").value,
         status: $("taskStatus").value,
         substatus,
@@ -1700,6 +1782,10 @@
         description,
         attachments: [...workingAttachments]
       };
+
+      const previousTask = id ? tasks.find(t => t.id === id) : null;
+      if(data.daily && previousTask?.dailyDefaultStatus && data.status === "completada") data.dailyDefaultStatus = previousTask.dailyDefaultStatus;
+      if(data.status === "completada" && previousTask?.completedOn) data.completedOn = previousTask.completedOn;
 
       if(!data.title || (!data.area && categoryMode === "manual")){
         toast("Completá al menos el título y la categoría");
@@ -1732,6 +1818,9 @@
         $("taskArea").value = previousMode === "manual" ? previousArea : "";
         $("taskStatus").value = previousStatus;
         $("taskOwner").value = previousOwner;
+        $("taskRelationType").value = "";
+        $("taskRelationPerson").value = "";
+        $("taskDaily").checked = false;
         $("taskPriority").value = "media";
         workingAttachments = [];
         renderAttachmentEditor();
@@ -2114,7 +2203,7 @@
       });
     }
 
-    const todayKey = new Date().toISOString().slice(0,10);
+    const todayKey = localDateKey();
     const dueCount = tasks.filter(t => t.status !== "completada" && t.deadline && dayDiff(t.deadline) !== null && dayDiff(t.deadline) <= 0).length;
     if(dueCount && localStorage.getItem("lastDueToastAdvanced") !== todayKey){
       toast(`Tenés ${dueCount} tareas vencidas o con vencimiento hoy`);
