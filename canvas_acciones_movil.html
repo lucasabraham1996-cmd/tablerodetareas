@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <title>Tablero de acciones · avanzado</title>
+  <title>Acciones móvil</title>
   <style>
     :root{
       --bg:#edf1f7;
@@ -737,7 +737,7 @@
         <div class="logo"><i data-lucide="layout-dashboard"></i></div>
         <div>
           <h1>Tablero de acciones</h1>
-          <div class="sub">Más columnas en vista simple, colores suaves según la lógica de tu captura: verde realizado, amarillo en proceso y rojo urgente</div>
+          <div class="sub">Versión móvil optimizada para gestionar tareas rápidamente</div>
         </div>
       </div>
       <div class="toolbar">
@@ -1098,7 +1098,7 @@
     let tasks = loadTasks();
     let onlyPending = settings.onlyPending !== false;
     let collapsedAreas = new Set(settings.collapsedAreas || []);
-    let compactMode = !!settings.compactMode;
+    let compactMode = settings.compactMode !== false;
     let collapseAll = false;
     let workingAttachments = [];
 
