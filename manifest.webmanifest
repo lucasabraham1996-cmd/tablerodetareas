@@ -2,7 +2,7 @@
   "name": "Tablero de acciones",
   "short_name": "Acciones",
   "description": "Gestor de tareas y acciones",
-  "start_url": "./canvas_acciones_final_pwa.html",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "background_color": "#edf1f7",
@@ -26,7 +26,7 @@
       "name": "Nueva tarea",
       "short_name": "Nueva tarea",
       "description": "Abrir directamente el creador de tareas",
-      "url": "./canvas_acciones_final_pwa.html?nueva=1",
+      "url": "./?nueva=1",
       "icons": [
         {
           "src": "icon-192.svg",

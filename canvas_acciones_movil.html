@@ -1,7 +1,8 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" translate="no" class="notranslate">
 <head>
   <meta charset="UTF-8" />
+  <meta name="google" content="notranslate" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#4c7dff" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -729,8 +730,9 @@
       .config-row.sub{grid-template-columns:1fr}
     }
   </style>
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
 </head>
-<body>
+<body translate="no" class="notranslate">
   <div class="app" id="app">
     <header class="panel">
       <div class="brand">
@@ -851,7 +853,8 @@
 
       <div class="modal-actions">
         <button type="button" class="btn" onclick="document.getElementById('taskDialog').close()">Cancelar</button>
-        <button type="submit" class="btn primary">Guardar tarea</button>
+        <button type="submit" class="btn" data-submit-mode="add-another"><i data-lucide="list-plus"></i> Guardar y agregar otra</button>
+        <button type="submit" class="btn primary" data-submit-mode="close">Guardar tarea</button>
       </div>
     </form>
   </dialog>
@@ -1310,9 +1313,21 @@
             </div>
           </div>
           <div class="task-actions">
-            <button class="icon-action" onclick="editTask('${t.id}')" title="Editar tarea" aria-label="Editar tarea"><i data-lucide="pencil"></i></button>
-            <button class="icon-action" onclick="duplicateTask('${t.id}')" title="Duplicar tarea" aria-label="Duplicar tarea"><i data-lucide="copy"></i></button>
-            <button class="icon-action danger" onclick="deleteTask('${t.id}')" title="Eliminar tarea" aria-label="Eliminar tarea"><i data-lucide="trash-2"></i></button>
+            <button class="icon-action" onclick="editTask('${t.id}')" title="Editar tarea" aria-label="Editar tarea">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>
+              </svg>
+            </button>
+            <button class="icon-action" onclick="duplicateTask('${t.id}')" title="Duplicar tarea" aria-label="Duplicar tarea">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+              </svg>
+            </button>
+            <button class="icon-action danger" onclick="deleteTask('${t.id}')" title="Eliminar tarea" aria-label="Eliminar tarea">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="m19 6-1 14H6L5 6"/><path d="M10 11v5"/><path d="M14 11v5"/>
+              </svg>
+            </button>
           </div>
         </article>
       `;
@@ -1701,8 +1716,31 @@
 
       saveTasksCloudReady();
       queueReminderSync();
-      $("taskDialog").close();
       renderBoard();
+
+      const submitMode = e.submitter?.dataset.submitMode || "close";
+      if(submitMode === "add-another"){
+        const previousArea = data.area;
+        const previousMode = categoryMode;
+        const previousStatus = data.status;
+        const previousOwner = data.owner;
+
+        $("taskForm").reset();
+        $("taskId").value = "";
+        $("taskDialogTitle").textContent = "Nueva tarea";
+        $("categoryMode").value = previousMode;
+        $("taskArea").value = previousMode === "manual" ? previousArea : "";
+        $("taskStatus").value = previousStatus;
+        $("taskOwner").value = previousOwner;
+        $("taskPriority").value = "media";
+        workingAttachments = [];
+        renderAttachmentEditor();
+        updateCategoryModeUI();
+        $("taskTitle").focus();
+        toast("Tarea guardada. Podés cargar la siguiente.");
+      }else{
+        $("taskDialog").close();
+      }
     });
 
     function renderConfigDialog(){
@@ -1858,6 +1896,7 @@
 
     function getNewTaskShortcutUrl(){
       const url = new URL(window.location.href);
+      url.search = "";
       url.searchParams.set("nueva", "1");
       url.hash = "";
       return url.toString();
@@ -1865,7 +1904,7 @@
 
     function downloadMobileVersion(){
       const link = document.createElement("a");
-      link.href = "canvas_acciones_movil.html";
+      link.href = new URL("canvas_acciones_movil.html", window.location.href).toString();
       link.download = "canvas_acciones_movil.html";
       document.body.appendChild(link);
       link.click();
@@ -1907,7 +1946,10 @@
     });
 
     $("openShortcutBtn").addEventListener("click", () => {
-      window.location.href = $("shortcutUrl").value;
+      const url = new URL($("shortcutUrl").value);
+      history.replaceState({}, "", url.pathname + url.search);
+      $("shortcutDialog").close();
+      openTaskDialog();
     });
 
     $("shareShortcutBtn").addEventListener("click", async () => {
@@ -2080,7 +2122,6 @@
     }
   </script>
 
-  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
     import { getFirestore, collection, getDocs, setDoc, doc } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";

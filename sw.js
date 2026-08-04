@@ -1,6 +1,6 @@
 const CACHE_NAME = "acciones-app-v1";
 const ASSETS = [
-  "./canvas_acciones_final_pwa.html",
+  "./",
   "./canvas_acciones_movil.html",
   "./manifest.webmanifest",
   "./icon-192.svg",
