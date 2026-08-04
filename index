@@ -1,9 +1,11 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <title>Tablero de acciones · avanzado</title>
   <style>
     :root{
@@ -23,7 +25,7 @@
     *{box-sizing:border-box}
     html,body{margin:0;padding:0}
     body{
-      font-family:Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-family:"Montserrat", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       background:
         linear-gradient(180deg, rgba(255,255,255,.86), rgba(243,246,250,.96)),
         var(--bg);
@@ -500,6 +502,24 @@
       line-height:1.35;
     }
 
+
+    .category-preview{
+      margin-top:8px;
+      padding:9px 10px;
+      border-radius:9px;
+      border:1px solid #bfd0f2;
+      background:#f1f6ff;
+      color:#25416f;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      font-size:.8rem;
+    }
+    .category-preview[hidden]{display:none}
+    .category-preview-label{color:var(--muted);font-weight:600}
+    .category-preview strong{font-weight:800;text-align:right}
+
     .attachment-edit-list{
       display:flex;
       flex-direction:column;
@@ -669,7 +689,11 @@
           </select>
           <input id="taskArea" class="field" list="areaList" required placeholder="Ej.: Inscripciones" />
           <datalist id="areaList"></datalist>
-          <div class="hint" id="categoryDetectionHint">La detección usa el título y la descripción de la tarea.</div>
+          <div class="hint" id="categoryDetectionHint">La detección usa el título, la descripción y el subestado.</div>
+          <div id="categoryPreview" class="category-preview" hidden>
+            <span class="category-preview-label">Categoría detectada</span>
+            <strong id="categoryPreviewValue"></strong>
+          </div>
         </div>
         <div>
           <label for="taskOwner">Responsable</label>
@@ -888,7 +912,7 @@
 
     let settings = loadSettings();
     let tasks = loadTasks();
-    let onlyPending = !!settings.onlyPending;
+    let onlyPending = settings.onlyPending !== false;
     let collapsedAreas = new Set(settings.collapsedAreas || []);
     let compactMode = !!settings.compactMode;
     let collapseAll = false;
@@ -980,7 +1004,7 @@
 
     function deadlineLabel(s){
       const diff = dayDiff(s);
-      if(diff === null) return "Sin plazo";
+      if(diff === null) return "";
       if(diff < 0) return `Vencida hace ${Math.abs(diff)} día${Math.abs(diff)===1?"":"s"}`;
       if(diff === 0) return "Vence hoy";
       if(diff === 1) return "Vence mañana";
@@ -1092,8 +1116,8 @@
                 <span class="tag status-chip">${esc(status.label)}</span>
                 ${t.substatus ? `<span class="tag">${esc(t.substatus)}</span>` : ""}
                 ${t.categoryMode === "auto" ? `<span class="tag"><i data-lucide="sparkles"></i> Categoría detectada</span>` : ""}
-                <span class="tag"><i data-lucide="calendar-days"></i> ${esc(deadlineLabel(t.deadline))}</span>
-                <span class="tag">Prioridad ${priorityLabel(t.priority)}</span>
+                ${t.deadline ? `<span class="tag"><i data-lucide="calendar-days"></i> ${esc(deadlineLabel(t.deadline))}</span>` : ""}
+                ${t.priority ? `<span class="tag">Prioridad ${priorityLabel(t.priority)}</span>` : ""}
                 ${t.owner ? `<span class="tag"><i data-lucide="user-round"></i> ${esc(t.owner)}</span>` : ""}
               </div>
               ${attachmentListHtml(t.attachments)}
@@ -1173,12 +1197,37 @@
       return bestCategory;
     }
 
+    function updateDetectedCategoryPreview(){
+      const preview = $("categoryPreview");
+      const value = $("categoryPreviewValue");
+      if(!preview || !value) return;
+
+      const auto = $("categoryMode").value === "auto";
+      const title = $("taskTitle").value.trim();
+      const description = $("taskDescription").value.trim();
+      const substatus = $("taskSubstatus").value.trim();
+      const hasContent = Boolean(title || description || substatus);
+
+      if(!auto || !hasContent){
+        preview.hidden = true;
+        value.textContent = "";
+        return;
+      }
+
+      const detected = detectCategory(title, description, substatus);
+      value.textContent = detected;
+      preview.hidden = false;
+    }
+
     function updateCategoryModeUI(){
       const auto = $("categoryMode").value === "auto";
       $("taskArea").disabled = auto;
       $("taskArea").required = !auto;
-      $("taskArea").placeholder = auto ? "Se detectará al guardar" : "Ej.: Inscripciones";
-      $("categoryDetectionHint").textContent = auto ? "La categoría se detectará usando el título, la descripción y el subestado." : "Elegí una categoría manualmente.";
+      $("taskArea").placeholder = auto ? "Se completará automáticamente" : "Ej.: Inscripciones";
+      $("categoryDetectionHint").textContent = auto
+        ? "La vista previa se actualiza mientras escribís."
+        : "Elegí una categoría manualmente.";
+      updateDetectedCategoryPreview();
     }
 
     function renderBoard(){
@@ -1253,6 +1302,7 @@
       $("attachmentEditList").innerHTML = "";
       $("taskAttachments").value = "";
       $("taskDialog").showModal();
+      updateDetectedCategoryPreview();
     }
 
     function renderAttachmentEditor(){
@@ -1286,6 +1336,9 @@
     }
 
     $("categoryMode").addEventListener("change", updateCategoryModeUI);
+    ["taskTitle","taskDescription","taskSubstatus"].forEach(id => {
+      $(id).addEventListener("input", updateDetectedCategoryPreview);
+    });
 
     $("taskAttachments").addEventListener("change", async e => {
       const files = e.target.files;
@@ -1321,6 +1374,7 @@
       $("taskAttachments").value = "";
       $("taskDialogTitle").textContent = "Editar tarea";
       $("taskDialog").showModal();
+      updateDetectedCategoryPreview();
     }
 
     function deleteTask(id){
