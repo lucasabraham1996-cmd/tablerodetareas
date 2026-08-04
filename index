@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -662,8 +663,13 @@
         </div>
         <div>
           <label for="taskArea">Categoría / columna</label>
+          <select id="categoryMode" class="field" style="margin-bottom:8px">
+            <option value="manual">Elegir categoría manualmente</option>
+            <option value="auto">Detectar categoría automáticamente</option>
+          </select>
           <input id="taskArea" class="field" list="areaList" required placeholder="Ej.: Inscripciones" />
           <datalist id="areaList"></datalist>
+          <div class="hint" id="categoryDetectionHint">La detección usa el título y la descripción de la tarea.</div>
         </div>
         <div>
           <label for="taskOwner">Responsable</label>
@@ -773,6 +779,7 @@
 
   <script>
     const STORAGE_KEY = "tablero_canvas_advanced_v1";
+    const DEFAULT_FIREBASE_CONFIG = {"apiKey": "AIzaSyCyaPuH3e35AB9aIx_d2qUA28435UJqjf0", "authDomain": "aplicacionparajugaric.firebaseapp.com", "projectId": "aplicacionparajugaric", "storageBucket": "aplicacionparajugaric.firebasestorage.app", "messagingSenderId": "744240763447", "appId": "1:744240763447:web:79a21a7f7468dc231b65b2", "measurementId": "G-YMRZEF672J"};
     const SETTINGS_KEY = "tablero_canvas_advanced_settings_v1";
 
     const columnDefs = [
@@ -894,9 +901,10 @@
         const s = JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {};
         if(!Array.isArray(s.statuses) || !s.statuses.length) s.statuses = defaultStatuses;
         if(!Array.isArray(s.substatuses) || !s.substatuses.length) s.substatuses = defaultSubstatuses;
+        if(!s.firebaseConfig) s.firebaseConfig = JSON.stringify(DEFAULT_FIREBASE_CONFIG, null, 2);
         return s;
       }catch(e){
-        return {statuses: defaultStatuses, substatuses: defaultSubstatuses};
+        return {statuses: defaultStatuses, substatuses: defaultSubstatuses, firebaseConfig: JSON.stringify(DEFAULT_FIREBASE_CONFIG, null, 2)};
       }
     }
 
@@ -1083,6 +1091,7 @@
               <div class="task-tags">
                 <span class="tag status-chip">${esc(status.label)}</span>
                 ${t.substatus ? `<span class="tag">${esc(t.substatus)}</span>` : ""}
+                ${t.categoryMode === "auto" ? `<span class="tag"><i data-lucide="sparkles"></i> Categoría detectada</span>` : ""}
                 <span class="tag"><i data-lucide="calendar-days"></i> ${esc(deadlineLabel(t.deadline))}</span>
                 <span class="tag">Prioridad ${priorityLabel(t.priority)}</span>
                 ${t.owner ? `<span class="tag"><i data-lucide="user-round"></i> ${esc(t.owner)}</span>` : ""}
@@ -1120,6 +1129,56 @@
         bar.classList.remove("show");
         bar.innerHTML = "";
       }
+    }
+
+
+    const categoryKeywordMap = {
+      "Inscripciones":["inscripto","inscripción","inscripciones","preinscripto","preinscripción","asesora","asesor","leads","matrícula"],
+      "Mejorar inscripciones":["conversión","conversiones","pauta","publicidad","campaña","ventas","mejorar inscripción"],
+      "Hacer un plan de postventa":["postventa","seguimiento alumno","alumno inscripto","acompañamiento"],
+      "Plan Retoma":["retoma","retomar","matrícula tardía","reactivar"],
+      "Morosos":["moroso","morosidad","deuda","cuota vencida","punitorio","naranja x"],
+      "Rematriculaciones y reinscripciones":["rematriculación","rematriculaciones","reinscripción","reinscripciones"],
+      "Programa Puente":["programa puente","colegio","colegios","puente"],
+      "Día del Estudiante":["día del estudiante","trivia","premios","merch","stand"],
+      "Bajas":["baja","retención","incobrable","abandono"],
+      "Satisfacción":["encuesta","satisfacción","resultados encuesta"],
+      "Jornada de Puertas Abiertas":["puertas abiertas","expo carreras","jornada","folleto"],
+      "No inicios":["no inicio","no iniciaron","no inicia","no iniciaron clases"],
+      "Pedidos":["pedido","solicitud","certificado","manual"],
+      "Acciones Talleres":["talleres","partido","certificado talleres","presencia"],
+      "Becas":["beca","media beca","ayuda económica"],
+      "Base de datos":["base de datos","datos","listado","padrón","colegios provienen"],
+      "Pagos":["pago","pagos","semestre completo","link de pago"],
+      "Competencia":["competencia","competidor","relevamiento"],
+      "CCAP":["ccap","diplomatura","unidad","consultas"]
+    };
+
+    function normalizeTextForDetection(text){
+      return String(text || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    }
+
+    function detectCategory(title, description, substatus){
+      const source = normalizeTextForDetection([title, description, substatus].join(" "));
+      let bestCategory = "Pedidos";
+      let bestScore = 0;
+      for(const [category, keywords] of Object.entries(categoryKeywordMap)){
+        let score = 0;
+        for(const keyword of keywords){
+          const normalizedKeyword = normalizeTextForDetection(keyword);
+          if(source.includes(normalizedKeyword)) score += normalizedKeyword.includes(" ") ? 3 : 1;
+        }
+        if(score > bestScore){ bestScore = score; bestCategory = category; }
+      }
+      return bestCategory;
+    }
+
+    function updateCategoryModeUI(){
+      const auto = $("categoryMode").value === "auto";
+      $("taskArea").disabled = auto;
+      $("taskArea").required = !auto;
+      $("taskArea").placeholder = auto ? "Se detectará al guardar" : "Ej.: Inscripciones";
+      $("categoryDetectionHint").textContent = auto ? "La categoría se detectará usando el título, la descripción y el subestado." : "Elegí una categoría manualmente.";
     }
 
     function renderBoard(){
@@ -1185,6 +1244,8 @@
       $("taskId").value = "";
       $("taskDialogTitle").textContent = "Nueva tarea";
       $("taskArea").value = areaEncoded ? decodeURIComponent(areaEncoded) : "";
+      $("categoryMode").value = areaEncoded ? "manual" : "auto";
+      updateCategoryModeUI();
       $("taskStatus").value = getStatuses()[0]?.id || "urgente";
       $("taskPriority").value = "media";
       $("taskSubstatus").value = "";
@@ -1224,6 +1285,8 @@
       })));
     }
 
+    $("categoryMode").addEventListener("change", updateCategoryModeUI);
+
     $("taskAttachments").addEventListener("change", async e => {
       const files = e.target.files;
       if(!files || !files.length) return;
@@ -1245,6 +1308,8 @@
       $("taskId").value = task.id;
       $("taskTitle").value = task.title || "";
       $("taskArea").value = task.area || "";
+      $("categoryMode").value = task.categoryMode || "manual";
+      updateCategoryModeUI();
       $("taskOwner").value = task.owner || "";
       $("taskDeadline").value = task.deadline || "";
       $("taskStatus").value = task.status || getStatuses()[0]?.id || "urgente";
@@ -1325,20 +1390,27 @@
     $("taskForm").addEventListener("submit", e => {
       e.preventDefault();
       const id = $("taskId").value;
+      const categoryMode = $("categoryMode").value;
+      const title = $("taskTitle").value.trim();
+      const description = $("taskDescription").value.trim();
+      const substatus = $("taskSubstatus").value.trim();
+      const detectedArea = detectCategory(title, description, substatus);
+
       const data = {
         id: id || crypto.randomUUID(),
-        title: $("taskTitle").value.trim(),
-        area: $("taskArea").value.trim(),
+        title,
+        area: categoryMode === "auto" ? detectedArea : $("taskArea").value.trim(),
+        categoryMode,
         owner: $("taskOwner").value.trim(),
         deadline: $("taskDeadline").value,
         status: $("taskStatus").value,
-        substatus: $("taskSubstatus").value.trim(),
+        substatus,
         priority: $("taskPriority").value,
-        description: $("taskDescription").value.trim(),
+        description,
         attachments: [...workingAttachments]
       };
 
-      if(!data.title || !data.area){
+      if(!data.title || (!data.area && categoryMode === "manual")){
         toast("Completá al menos el título y la categoría");
         return;
       }
@@ -1464,7 +1536,7 @@
 
 
     $("integrationBtn").addEventListener("click", () => {
-      $("firebaseConfig").value = settings.firebaseConfig || "";
+      $("firebaseConfig").value = settings.firebaseConfig || JSON.stringify(DEFAULT_FIREBASE_CONFIG, null, 2);
       $("reminderEmail").value = settings.reminderEmail || "lucasabraham1996@gmail.com";
       $("reminderWhatsapp").value = settings.reminderWhatsapp || "5493515580770";
       $("reminderEndpoint").value = settings.reminderEndpoint || "";
@@ -1561,7 +1633,7 @@
       try{
         const config = typeof raw === "string" ? JSON.parse(raw) : raw;
         const db = await window.initCanvasFirebase(config);
-        if(db && settings.loadFromFirestore){
+        if(db && settings.loadFromFirestore === true){
           const remote = await window.loadTasksFromFirestore();
           if(Array.isArray(remote) && remote.length){
             tasks = remote;
