@@ -1,5 +1,4 @@
 
-
 <!DOCTYPE html>
 <html lang="es" translate="no" class="notranslate">
 <head>
@@ -7,13 +6,17 @@
   <meta name="google" content="notranslate" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#4c7dff" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <meta name="app-version" content="2026.08.12.1" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Acciones" />
-  <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="apple-touch-icon" href="icon-192.svg" />
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="manifest" href="https://lucasabraham1996-cmd.github.io/tablerodetareas/manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="https://lucasabraham1996-cmd.github.io/tablerodetareas/icon-192.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com/">
+  <link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <title>Tablero de acciones · avanzado</title>
   <style>
@@ -616,17 +619,15 @@
 
     .floating-due-alert{
       position:fixed;
-      bottom:18px;
+      top:18px;
       right:18px;
       z-index:120;
       width:min(390px,calc(100% - 28px));
       border-radius:16px;
       padding:14px;
-      background:
-        linear-gradient(#fff,#fff) padding-box,
-        linear-gradient(135deg,#4c7dff,#8b5cf6,#ec4899,#f59e0b,#22c55e) border-box;
-      border:3px solid transparent;
-      box-shadow:0 18px 46px rgba(42,48,88,.22);
+      background:rgba(255,255,255,.97);
+      border:1px solid #e7b1b1;
+      box-shadow:0 18px 46px rgba(65,24,24,.18);
       display:none;
       animation:floatIn .22s ease;
     }
@@ -642,12 +643,12 @@
       align-items:center;
       gap:9px;
       font-weight:800;
-      color:#4338ca;
+      color:#842a2a;
     }
     .floating-due-title svg{width:19px;height:19px}
     .floating-due-alert p{
       margin:8px 0 0;
-      color:#4b5563;
+      color:#5d3a3a;
       font-size:.84rem;
       line-height:1.45;
     }
@@ -662,20 +663,20 @@
     .floating-due-item{
       padding:7px 9px;
       border-radius:9px;
-      background:linear-gradient(135deg,rgba(76,125,255,.10),rgba(236,72,153,.08),rgba(245,158,11,.10));
-      border:1px solid rgba(124,105,239,.24);
+      background:#fff3f3;
+      border:1px solid #efcccc;
       font-size:.8rem;
-      color:#374151;
+      color:#633636;
     }
     .floating-close{
       width:28px;height:28px;
       border:none;border-radius:8px;
-      background:linear-gradient(135deg,#eef2ff,#fdf2f8);color:#6d28d9;cursor:pointer;
+      background:#fff0f0;color:#842a2a;cursor:pointer;
       display:grid;place-items:center;
     }
     .floating-close svg{width:15px;height:15px}
     @keyframes floatIn{
-      from{opacity:0;transform:translateY(18px)}
+      from{opacity:0;transform:translateY(-10px)}
       to{opacity:1;transform:translateY(0)}
     }
 
@@ -709,6 +710,41 @@
       border-radius:10px;
       box-shadow:var(--shadow);
     }
+
+
+    /* Resúmenes clickeables */
+    .stat{cursor:pointer;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
+    .stat:hover{transform:translateY(-2px);box-shadow:0 16px 34px rgba(26,40,71,.13);border-color:#b7c5df}
+    .stat:focus-visible{outline:3px solid rgba(76,125,255,.26);outline-offset:2px}
+
+    /* Tareas mensuales: identidad visual propia */
+    .task.monthly{background:linear-gradient(135deg,#f5efff,#eee7ff)!important;border-color:#bca8ee!important;--accent:#7c5ce0!important}
+    .tag.monthly-tag{background:#ede5ff;border-color:#c7b5f3;color:#593cae;font-weight:800}
+
+    /* Modal de listado por resumen */
+    #taskListDialog{width:min(920px,calc(100% - 24px))}
+    .summary-modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:12px}
+    .summary-modal-title{display:flex;align-items:center;gap:10px}
+    .summary-modal-title h3{margin:0}
+    .summary-modal-sub{margin-top:4px;color:var(--muted);font-size:.82rem}
+    .summary-list{display:grid;gap:9px;max-height:65vh;overflow:auto;padding:2px}
+    .summary-item{border:1px solid var(--line-soft);border-radius:12px;padding:12px;background:#fbfcff;cursor:pointer;transition:.18s ease}
+    .summary-item:hover{transform:translateY(-1px);border-color:#b9c7e2;box-shadow:0 8px 18px rgba(26,40,71,.08)}
+    .summary-item.overdue-summary{background:#fff1f1;border-color:#eab9b9}
+    .summary-item.today-summary{background:#fff8e8;border-color:#ead49b}
+    .summary-item.monthly-summary{box-shadow:inset 4px 0 0 #7c5ce0}
+    .summary-item-title{font-weight:800;font-size:.9rem}
+    .summary-item-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px;color:#596783;font-size:.76rem}
+
+    /* Avisos: vencidas en rojo, hoy en ámbar */
+    .floating-due-item{cursor:pointer;transition:.15s ease}
+    .floating-due-item:hover{transform:translateX(-2px)}
+    .floating-due-item.is-overdue{background:#ffe8e8;border-color:#e8aaaa;color:#7c2929}
+    .floating-due-item.is-today{background:#fff6dc;border-color:#e9ce80;color:#71530f}
+    .floating-due-alert.has-overdue{border-color:#df9696}
+    .floating-due-alert.only-today{border-color:#e5c96d}
+
+    .recurrence-day-wrap[hidden]{display:none}
 
     @media (max-width:1180px){
       header{position:static;flex-direction:column;align-items:flex-start}
@@ -759,11 +795,11 @@
     </header>
 
     <section class="stats">
-      <div class="stat panel"><div><strong id="statTotal">0</strong><small>Total</small></div><span class="badge">Tablero</span></div>
-      <div class="stat panel"><div><strong id="statPending">0</strong><small>Urgentes</small></div><span class="badge" id="badgePending">Urgente</span></div>
-      <div class="stat panel"><div><strong id="statProgress">0</strong><small>En proceso</small></div><span class="badge" id="badgeProgress">Proceso</span></div>
-      <div class="stat panel"><div><strong id="statDone">0</strong><small>Completadas</small></div><span class="badge" id="badgeDone">Hecha</span></div>
-      <div class="stat panel"><div><strong id="statDue">0</strong><small>Vencidas / hoy</small></div><span class="badge" style="background:#fff1f1;border-color:#e4b7b7">Alerta</span></div>
+      <div class="stat panel" data-summary="total" tabindex="0" role="button"><div><strong id="statTotal">0</strong><small>Total</small></div><span class="badge">Tablero</span></div>
+      <div class="stat panel" data-summary="urgente" tabindex="0" role="button"><div><strong id="statPending">0</strong><small>Urgentes</small></div><span class="badge" id="badgePending">Urgente</span></div>
+      <div class="stat panel" data-summary="en-proceso" tabindex="0" role="button"><div><strong id="statProgress">0</strong><small>En proceso</small></div><span class="badge" id="badgeProgress">Proceso</span></div>
+      <div class="stat panel" data-summary="completada" tabindex="0" role="button"><div><strong id="statDone">0</strong><small>Completadas</small></div><span class="badge" id="badgeDone">Hecha</span></div>
+      <div class="stat panel" data-summary="due" tabindex="0" role="button"><div><strong id="statDue">0</strong><small>Vencidas / hoy</small></div><span class="badge" style="background:#fff1f1;border-color:#e4b7b7">Alerta</span></div>
     </section>
 
     <section class="meta-grid">
@@ -823,25 +859,20 @@
           <input id="taskOwner" class="field" placeholder="Ej.: Lucas" />
         </div>
         <div>
-          <label for="taskRelationType">Acción con otra persona</label>
-          <select id="taskRelationType" class="field">
-            <option value="">Sin especificar</option>
-            <option value="Pedir a">Pedir a</option>
-            <option value="Juntarme con">Juntarme con</option>
-            <option value="Hablar con">Hablar con</option>
-            <option value="Esperar respuesta de">Esperar respuesta de</option>
-            <option value="Enviar a">Enviar a</option>
-            <option value="Coordinar con">Coordinar con</option>
-            <option value="Delegar a">Delegar a</option>
-          </select>
-        </div>
-        <div>
-          <label for="taskRelationPerson">Persona / área</label>
-          <input id="taskRelationPerson" class="field" placeholder="Ej.: Diego, Bedelía..." />
-        </div>
-        <div>
           <label for="taskDeadline">Fecha límite</label>
           <input id="taskDeadline" class="field" type="date" />
+        </div>
+        <div>
+          <label for="taskRecurrence">Periodicidad</label>
+          <select id="taskRecurrence" class="field">
+            <option value="none">No periódica</option>
+            <option value="monthly">Mensual</option>
+          </select>
+        </div>
+        <div class="recurrence-day-wrap" id="recurrenceDayWrap" hidden>
+          <label for="taskRecurrenceDay">Día de cada mes</label>
+          <input id="taskRecurrenceDay" class="field" type="number" min="1" max="31" placeholder="Ej.: 10" />
+          <div class="hint">Si un mes no tiene ese día, se usa el último día disponible.</div>
         </div>
         <div>
           <label for="taskStatus">Estado</label>
@@ -859,14 +890,6 @@
             <option value="media">Media</option>
             <option value="baja">Baja</option>
           </select>
-        </div>
-        <div>
-          <label for="taskDaily">Repetición</label>
-          <label class="field" style="display:flex;align-items:center;gap:9px;cursor:pointer;color:var(--text)">
-            <input id="taskDaily" type="checkbox" />
-            Tarea diaria
-          </label>
-          <div class="hint">Al completarla, mañana volverá con su estado y color predeterminados.</div>
         </div>
         <div class="full">
           <label for="taskDescription">Descripción</label>
@@ -886,6 +909,23 @@
         <button type="submit" class="btn primary" data-submit-mode="close">Guardar tarea</button>
       </div>
     </form>
+  </dialog>
+
+
+  <dialog id="taskListDialog">
+    <div class="modal">
+      <div class="summary-modal-head">
+        <div class="summary-modal-title">
+          <i data-lucide="list-checks"></i>
+          <div>
+            <h3 id="taskListTitle">Tareas</h3>
+            <div class="summary-modal-sub" id="taskListSubtitle"></div>
+          </div>
+        </div>
+        <button type="button" class="btn" id="closeTaskListBtn"><i data-lucide="x"></i> Cerrar</button>
+      </div>
+      <div id="taskListContent" class="summary-list"></div>
+    </div>
   </dialog>
 
   <dialog id="configDialog">
@@ -1044,7 +1084,6 @@
     let columnDefs = [];
 
     const defaultStatuses = [
-      {id:"sin-comenzar", label:"Sin comenzar", color:"#d9e2ef"},
       {id:"urgente", label:"Urgente", color:"#e6a4a4"},
       {id:"en-proceso", label:"En proceso", color:"#ecd88a"},
       {id:"completada", label:"Realizada", color:"#bfd6b0"},
@@ -1140,8 +1179,7 @@
     function loadSettings(){
       try{
         const s = JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {};
-        if(!Array.isArray(s.statuses) || !s.statuses.length) s.statuses = defaultStatuses.map(x => ({...x}));
-        if(!s.statuses.some(x => x.id === "sin-comenzar")) s.statuses.unshift({...defaultStatuses[0]});
+        if(!Array.isArray(s.statuses) || !s.statuses.length) s.statuses = defaultStatuses;
         if(!Array.isArray(s.substatuses) || !s.substatuses.length) s.substatuses = defaultSubstatuses;
         if(!s.firebaseConfig) s.firebaseConfig = JSON.stringify(DEFAULT_FIREBASE_CONFIG, null, 2);
         if(!Array.isArray(s.categories) || !s.categories.length) s.categories = defaultColumnDefs.map(c => ({...c}));
@@ -1188,10 +1226,6 @@
       tasks.forEach(t => {
         if(!valid.has(t.status)) t.status = getStatuses()[0]?.id || "urgente";
         if(!Array.isArray(t.attachments)) t.attachments = [];
-        if(typeof t.daily !== "boolean") t.daily = false;
-        if(!t.relationType) t.relationType = "";
-        if(!t.relationPerson) t.relationPerson = "";
-        if(t.daily && !t.dailyDefaultStatus) t.dailyDefaultStatus = t.status === "completada" ? "sin-comenzar" : t.status;
       });
       saveTasks();
     }
@@ -1220,31 +1254,36 @@
       return new Date(d.getFullYear(), d.getMonth(), d.getDate());
     }
 
-    function localDateKey(d=new Date()){
-      const y = d.getFullYear();
-      const m = String(d.getMonth()+1).padStart(2,"0");
-      const day = String(d.getDate()).padStart(2,"0");
-      return `${y}-${m}-${day}`;
-    }
-
-    function resetDailyTasks(){
-      const today = localDateKey();
-      let changed = false;
-      tasks.forEach(t => {
-        if(!t.daily) return;
-        if(t.status === "completada" && t.completedOn && t.completedOn !== today){
-          t.status = t.dailyDefaultStatus || "sin-comenzar";
-          t.completedOn = "";
-          changed = true;
-        }
-      });
-      if(changed) saveTasksCloudReady();
-    }
-
     function dayDiff(s){
       const d = parseDate(s);
       if(!d) return null;
       return Math.round((startOfDay(d) - startOfDay()) / 86400000);
+    }
+
+    function daysInMonth(year, monthIndex){
+      return new Date(year, monthIndex + 1, 0).getDate();
+    }
+
+    function monthlyDateFor(year, monthIndex, requestedDay){
+      const day = Math.min(Math.max(Number(requestedDay) || 1, 1), daysInMonth(year, monthIndex));
+      const d = new Date(year, monthIndex, day);
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+    }
+
+    function nextMonthlyDeadline(requestedDay, fromDate=new Date()){
+      const today = startOfDay(fromDate);
+      let candidate = parseDate(monthlyDateFor(today.getFullYear(), today.getMonth(), requestedDay));
+      if(candidate < today){
+        const nextMonth = new Date(today.getFullYear(), today.getMonth()+1, 1);
+        candidate = parseDate(monthlyDateFor(nextMonth.getFullYear(), nextMonth.getMonth(), requestedDay));
+      }
+      return `${candidate.getFullYear()}-${String(candidate.getMonth()+1).padStart(2,"0")}-${String(candidate.getDate()).padStart(2,"0")}`;
+    }
+
+    function followingMonthlyDeadline(currentDeadline, requestedDay){
+      const current = parseDate(currentDeadline) || new Date();
+      const nextMonth = new Date(current.getFullYear(), current.getMonth()+1, 1);
+      return monthlyDateFor(nextMonth.getFullYear(), nextMonth.getMonth(), requestedDay);
     }
 
     function deadlineLabel(s){
@@ -1320,7 +1359,7 @@
         if(status && t.status !== status) return false;
         if(substatus && (t.substatus || "") !== substatus) return false;
 
-        const hay = [t.title, t.description, t.owner, t.relationType, t.relationPerson, t.area, t.substatus].join(" ").toLowerCase();
+        const hay = [t.title, t.description, t.owner, t.area, t.substatus].join(" ").toLowerCase();
         if(q && !hay.includes(q)) return false;
 
         if(deadline){
@@ -1351,7 +1390,7 @@
       const due = t.deadline && dayDiff(t.deadline) !== null && dayDiff(t.deadline) <= 0 && t.status !== "completada";
       const status = statusById(t.status);
       return `
-        <article class="task ${t.status === "completada" ? "done" : ""} ${due ? "overdue" : ""}" style="${taskStyle(t.status)}">
+        <article class="task ${t.status === "completada" ? "done" : ""} ${due ? "overdue" : ""} ${t.recurrence === "monthly" ? "monthly" : ""}" style="${taskStyle(t.status)}">
           <div class="task-top">
             <input class="check" type="checkbox" ${t.status === "completada" ? "checked" : ""} onchange="toggleDone('${t.id}', this.checked)" />
             <div class="task-main">
@@ -1362,10 +1401,9 @@
                 ${t.substatus ? `<span class="tag">${esc(t.substatus)}</span>` : ""}
                 ${t.categoryMode === "auto" ? `<span class="tag"><i data-lucide="sparkles"></i> Categoría detectada</span>` : ""}
                 ${t.deadline ? `<span class="tag"><i data-lucide="calendar-days"></i> ${esc(deadlineLabel(t.deadline))}</span>` : ""}
+                ${t.recurrence === "monthly" ? `<span class="tag monthly-tag"><i data-lucide="repeat-2"></i> Mensual · día ${esc(t.recurrenceDay || "-")}</span>` : ""}
                 ${t.priority ? `<span class="tag">Prioridad ${priorityLabel(t.priority)}</span>` : ""}
-                ${t.owner ? `<span class="tag"><i data-lucide="user-round"></i> Responsable: ${esc(t.owner)}</span>` : ""}
-                ${t.relationType && t.relationPerson ? `<span class="tag"><i data-lucide="users-round"></i> ${esc(t.relationType)} ${esc(t.relationPerson)}</span>` : ""}
-                ${t.daily ? `<span class="tag"><i data-lucide="repeat-2"></i> Diaria</span>` : ""}
+                ${t.owner ? `<span class="tag"><i data-lucide="user-round"></i> ${esc(t.owner)}</span>` : ""}
               </div>
               ${attachmentListHtml(t.attachments)}
             </div>
@@ -1397,11 +1435,11 @@
 
 
     function showFloatingDueNotification(){
-      const todayTasks = tasks.filter(t =>
-        t.status !== "completada" &&
-        t.deadline &&
-        dayDiff(t.deadline) === 0
-      );
+      const alertTasks = tasks.filter(t =>
+        t.status !== "completada" && t.deadline && dayDiff(t.deadline) !== null && dayDiff(t.deadline) <= 0
+      ).sort((a,b) => String(a.deadline).localeCompare(String(b.deadline)));
+      const overdueTasks = alertTasks.filter(t => dayDiff(t.deadline) < 0);
+      const todayTasks = alertTasks.filter(t => dayDiff(t.deadline) === 0);
 
       const alert = $("floatingDueAlert");
       const title = $("floatingDueTitle");
@@ -1409,20 +1447,24 @@
       const list = $("floatingDueList");
       if(!alert || !title || !text || !list) return;
 
-      if(!todayTasks.length){
-        alert.classList.remove("show");
+      if(!alertTasks.length){
+        alert.classList.remove("show","has-overdue","only-today");
         return;
       }
 
-      title.textContent = todayTasks.length === 1
-        ? "Una tarea vence hoy"
-        : `${todayTasks.length} tareas vencen hoy`;
-
-      text.textContent = "Revisá estas tareas antes de que termine el día.";
-      list.innerHTML = todayTasks.slice(0, 6).map(t => `
-        <div class="floating-due-item">
+      alert.classList.toggle("has-overdue", overdueTasks.length > 0);
+      alert.classList.toggle("only-today", overdueTasks.length === 0 && todayTasks.length > 0);
+      title.textContent = overdueTasks.length
+        ? `${overdueTasks.length} vencida${overdueTasks.length===1?"":"s"}${todayTasks.length ? ` · ${todayTasks.length} para hoy` : ""}`
+        : (todayTasks.length === 1 ? "Una tarea vence hoy" : `${todayTasks.length} tareas vencen hoy`);
+      text.textContent = overdueTasks.length
+        ? "Las vencidas aparecen en rojo y las que vencen hoy en amarillo. Tocá una para abrirla."
+        : "Revisá estas tareas antes de que termine el día.";
+      list.innerHTML = alertTasks.slice(0, 8).map(t => `
+        <div class="floating-due-item ${dayDiff(t.deadline)<0 ? "is-overdue" : "is-today"}" onclick="openTaskFromSummary('${t.id}')">
           <strong>${esc(t.title)}</strong>
           ${t.area ? `<div>${esc(t.area)}</div>` : ""}
+          <div>${esc(deadlineLabel(t.deadline))}</div>
         </div>
       `).join("");
 
@@ -1448,6 +1490,49 @@
         bar.innerHTML = "";
       }
       showFloatingDueNotification();
+    }
+
+    function tasksForSummary(type){
+      if(type === "total") return [...tasks];
+      if(type === "due") return tasks.filter(t => t.status !== "completada" && t.deadline && dayDiff(t.deadline) !== null && dayDiff(t.deadline) <= 0);
+      return tasks.filter(t => t.status === type);
+    }
+
+    function openSummary(type){
+      const labels = {
+        total:["Todas las tareas","Vista completa del tablero"],
+        urgente:["Tareas urgentes","Pendientes marcadas como urgentes"],
+        "en-proceso":["Tareas en proceso","Acciones que ya están en marcha"],
+        completada:["Tareas completadas","Historial de acciones realizadas"],
+        due:["Vencidas y de hoy","Primero se muestran las más atrasadas"]
+      };
+      const rows = tasksForSummary(type).sort((a,b) => {
+        if(type === "due") return String(a.deadline||"").localeCompare(String(b.deadline||""));
+        return String(a.title||"").localeCompare(String(b.title||""));
+      });
+      $("taskListTitle").textContent = labels[type]?.[0] || "Tareas";
+      $("taskListSubtitle").textContent = `${rows.length} tarea${rows.length===1?"":"s"} · ${labels[type]?.[1] || ""}`;
+      $("taskListContent").innerHTML = rows.length ? rows.map(t => {
+        const diff = dayDiff(t.deadline);
+        const deadlineClass = diff !== null && diff < 0 && t.status !== "completada" ? "overdue-summary" : (diff === 0 && t.status !== "completada" ? "today-summary" : "");
+        return `<div class="summary-item ${deadlineClass} ${t.recurrence === "monthly" ? "monthly-summary" : ""}" onclick="openTaskFromSummary('${t.id}')">
+          <div class="summary-item-title">${esc(t.title)}</div>
+          <div class="summary-item-meta">
+            <span>${esc(t.area || "Sin categoría")}</span>
+            <span>· ${esc(statusById(t.status).label)}</span>
+            ${t.owner ? `<span>· ${esc(t.owner)}</span>` : ""}
+            ${t.deadline ? `<span>· ${esc(deadlineLabel(t.deadline))}</span>` : ""}
+            ${t.recurrence === "monthly" ? `<span>· Mensual día ${esc(t.recurrenceDay || "-")}</span>` : ""}
+          </div>
+        </div>`;
+      }).join("") : `<div class="empty">No hay tareas en esta categoría.</div>`;
+      $("taskListDialog").showModal();
+      refreshIcons();
+    }
+
+    function openTaskFromSummary(id){
+      if($("taskListDialog")?.open) $("taskListDialog").close();
+      editTask(id);
     }
 
 
@@ -1526,7 +1611,6 @@
     }
 
     function renderBoard(){
-      resetDailyTasks();
       ensureTaskStatuses();
       renderSelectors();
 
@@ -1576,7 +1660,7 @@
       renderStats();
 
       $("pendingBtn").classList.toggle("active", onlyPending);
-      
+
 
       $("compactBtn").classList.toggle("active", compactMode);
       $("compactBtn").innerHTML = compactMode ? '<i data-lucide="columns-3"></i> Vista simple activada' : '<i data-lucide="columns-3"></i> Vista compacta';
@@ -1591,12 +1675,12 @@
       $("taskArea").value = areaEncoded ? decodeURIComponent(areaEncoded) : "";
       $("categoryMode").value = areaEncoded ? "manual" : "auto";
       updateCategoryModeUI();
-      $("taskStatus").value = "sin-comenzar";
+      $("taskStatus").value = getStatuses()[0]?.id || "urgente";
       $("taskPriority").value = "media";
-      $("taskRelationType").value = "";
-      $("taskRelationPerson").value = "";
-      $("taskDaily").checked = false;
       $("taskSubstatus").value = "";
+      $("taskRecurrence").value = "none";
+      $("taskRecurrenceDay").value = "";
+      updateRecurrenceUI();
       workingAttachments = [];
       $("attachmentEditList").innerHTML = "";
       $("taskAttachments").value = "";
@@ -1634,6 +1718,22 @@
       })));
     }
 
+    function updateRecurrenceUI(){
+      const monthly = $("taskRecurrence")?.value === "monthly";
+      if($("recurrenceDayWrap")) $("recurrenceDayWrap").hidden = !monthly;
+      if(monthly && !$("taskRecurrenceDay").value){
+        const deadline = parseDate($("taskDeadline").value);
+        $("taskRecurrenceDay").value = deadline ? deadline.getDate() : new Date().getDate();
+      }
+    }
+    $("taskRecurrence").addEventListener("change", updateRecurrenceUI);
+    $("taskDeadline").addEventListener("change", () => {
+      if($("taskRecurrence").value === "monthly" && $("taskDeadline").value){
+        const d = parseDate($("taskDeadline").value);
+        if(d) $("taskRecurrenceDay").value = d.getDate();
+      }
+    });
+
     $("categoryMode").addEventListener("change", updateCategoryModeUI);
     ["taskTitle","taskDescription","taskSubstatus"].forEach(id => {
       $(id).addEventListener("input", updateDetectedCategoryPreview);
@@ -1663,10 +1763,10 @@
       $("categoryMode").value = task.categoryMode || "manual";
       updateCategoryModeUI();
       $("taskOwner").value = task.owner || "";
-      $("taskRelationType").value = task.relationType || "";
-      $("taskRelationPerson").value = task.relationPerson || "";
-      $("taskDaily").checked = !!task.daily;
       $("taskDeadline").value = task.deadline || "";
+      $("taskRecurrence").value = task.recurrence || "none";
+      $("taskRecurrenceDay").value = task.recurrenceDay || "";
+      updateRecurrenceUI();
       $("taskStatus").value = task.status || getStatuses()[0]?.id || "urgente";
       $("taskSubstatus").value = task.substatus || "";
       $("taskPriority").value = task.priority || "media";
@@ -1692,7 +1792,7 @@
     function duplicateTask(id){
       const task = tasks.find(t => t.id === id);
       if(!task) return;
-      tasks.push({...task, id:crypto.randomUUID(), title: task.title + " (copia)", completedOn:""});
+      tasks.push({...task, id:crypto.randomUUID(), title: task.title + " (copia)"});
       saveTasksCloudReady();
       queueReminderSync();
       renderBoard();
@@ -1702,14 +1802,24 @@
     function toggleDone(id, checked){
       const task = tasks.find(t => t.id === id);
       if(!task) return;
-      if(checked){
-        if(task.daily && !task.dailyDefaultStatus) task.dailyDefaultStatus = task.status === "completada" ? "sin-comenzar" : task.status;
-        task.status = "completada";
-        task.completedOn = localDateKey();
-      }else{
-        task.status = task.daily ? (task.dailyDefaultStatus || "sin-comenzar") : "sin-comenzar";
-        task.completedOn = "";
+
+      if(checked && task.recurrence === "monthly" && !task.nextGeneratedId){
+        const nextId = crypto.randomUUID();
+        const nextTask = {
+          ...task,
+          id: nextId,
+          deadline: followingMonthlyDeadline(task.deadline, task.recurrenceDay),
+          status: task.recurringStatus || getStatuses()[0]?.id || "urgente",
+          nextGeneratedId: null,
+          previousOccurrenceId: task.id
+        };
+        task.nextGeneratedId = nextId;
+        task.recurringStatus = task.status;
+        tasks.push(nextTask);
+        toast(`Próxima tarea mensual creada para ${nextTask.deadline}`);
       }
+
+      task.status = checked ? "completada" : (task.recurringStatus || getStatuses()[0]?.id || "pendiente");
       saveTasksCloudReady();
       queueReminderSync();
       renderBoard();
@@ -1735,13 +1845,8 @@
         title,
         area,
         owner:"",
-        relationType:"",
-        relationPerson:"",
-        daily:false,
-        dailyDefaultStatus:"sin-comenzar",
-        completedOn:"",
         deadline:"",
-        status:"sin-comenzar",
+        status:getStatuses()[0]?.id || "urgente",
         substatus:"",
         priority:"media",
         description:"",
@@ -1770,12 +1875,9 @@
         area: categoryMode === "auto" ? detectedArea : $("taskArea").value.trim(),
         categoryMode,
         owner: $("taskOwner").value.trim(),
-        relationType: $("taskRelationType").value,
-        relationPerson: $("taskRelationPerson").value.trim(),
-        daily: $("taskDaily").checked,
-        dailyDefaultStatus: $("taskDaily").checked ? ($("taskStatus").value === "completada" ? "sin-comenzar" : $("taskStatus").value) : "",
-        completedOn: $("taskStatus").value === "completada" ? localDateKey() : "",
         deadline: $("taskDeadline").value,
+        recurrence: $("taskRecurrence").value,
+        recurrenceDay: $("taskRecurrence").value === "monthly" ? Math.min(31, Math.max(1, Number($("taskRecurrenceDay").value) || new Date().getDate())) : null,
         status: $("taskStatus").value,
         substatus,
         priority: $("taskPriority").value,
@@ -1783,9 +1885,9 @@
         attachments: [...workingAttachments]
       };
 
-      const previousTask = id ? tasks.find(t => t.id === id) : null;
-      if(data.daily && previousTask?.dailyDefaultStatus && data.status === "completada") data.dailyDefaultStatus = previousTask.dailyDefaultStatus;
-      if(data.status === "completada" && previousTask?.completedOn) data.completedOn = previousTask.completedOn;
+      if(data.recurrence === "monthly"){
+        data.deadline = data.deadline || nextMonthlyDeadline(data.recurrenceDay);
+      }
 
       if(!data.title || (!data.area && categoryMode === "manual")){
         toast("Completá al menos el título y la categoría");
@@ -1818,9 +1920,6 @@
         $("taskArea").value = previousMode === "manual" ? previousArea : "";
         $("taskStatus").value = previousStatus;
         $("taskOwner").value = previousOwner;
-        $("taskRelationType").value = "";
-        $("taskRelationPerson").value = "";
-        $("taskDaily").checked = false;
         $("taskPriority").value = "media";
         workingAttachments = [];
         renderAttachmentEditor();
@@ -2190,20 +2289,48 @@
     window.toggleDone = toggleDone;
     window.quickAdd = quickAdd;
     window.toggleColumn = toggleColumn;
+    window.openTaskFromSummary = openTaskFromSummary;
+    window.openSummary = openSummary;
     window.removeWorkingAttachment = removeWorkingAttachment;
     window.removeStatusRow = removeStatusRow;
     window.removeSubstatusRow = removeSubstatusRow;
 
+
+    window.getCanvasTasks = () => tasks;
+    window.applyCanvasRemoteTasks = remote => {
+      if(!Array.isArray(remote)) return;
+      tasks = remote;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+      renderBoard();
+      toast("Tablero actualizado automáticamente");
+    };
+
+    document.querySelectorAll(".stat[data-summary]").forEach(el => {
+      const open = () => openSummary(el.dataset.summary);
+      el.addEventListener("click", open);
+      el.addEventListener("keydown", e => { if(e.key === "Enter" || e.key === " "){ e.preventDefault(); open(); } });
+    });
+    $("closeTaskListBtn")?.addEventListener("click", () => $("taskListDialog").close());
+
     renderBoard();
     openTaskFromShortcut();
 
+    // Evita que una versión vieja del Service Worker siga entregando un index anterior.
+    // Se prioriza que el tablero siempre abra la versión publicada más reciente.
     if("serviceWorker" in navigator && location.protocol.startsWith("http")){
-      window.addEventListener("load", () => {
-        navigator.serviceWorker.register("./sw.js").catch(console.error);
+      window.addEventListener("load", async () => {
+        try{
+          const regs = await navigator.serviceWorker.getRegistrations();
+          for(const reg of regs) await reg.unregister();
+          if("caches" in window){
+            const names = await caches.keys();
+            await Promise.all(names.map(name => caches.delete(name)));
+          }
+        }catch(err){ console.warn("Limpieza de caché:", err); }
       });
     }
 
-    const todayKey = localDateKey();
+    const todayKey = new Date().toISOString().slice(0,10);
     const dueCount = tasks.filter(t => t.status !== "completada" && t.deadline && dayDiff(t.deadline) !== null && dayDiff(t.deadline) <= 0).length;
     if(dueCount && localStorage.getItem("lastDueToastAdvanced") !== todayKey){
       toast(`Tenés ${dueCount} tareas vencidas o con vencimiento hoy`);
@@ -2213,7 +2340,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
-    import { getFirestore, collection, getDocs, setDoc, doc } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
+    import { getFirestore, collection, getDocs, setDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
 
     window.initCanvasFirebase = async function(config){
       try{
@@ -2221,6 +2348,17 @@
         const app = initializeApp(config);
         const db = getFirestore(app);
         window.canvasFirestore = db;
+        if(!window.canvasLiveUnsubscribe){
+          window.canvasLiveUnsubscribe = onSnapshot(collection(db, "canvas_tasks"), snap => {
+            if(!snap || snap.empty) return;
+            const remote = snap.docs.map(d => ({id:d.id, ...d.data()}));
+            const localJson = JSON.stringify((window.getCanvasTasks?.() || []).map(t => ({...t, attachments:t.attachments || []})));
+            const remoteJson = JSON.stringify(remote.map(t => ({...t, attachments:t.attachments || []})));
+            if(localJson !== remoteJson && window.applyCanvasRemoteTasks){
+              window.applyCanvasRemoteTasks(remote);
+            }
+          }, err => console.error("Firebase live:", err));
+        }
         return db;
       }catch(err){
         console.error("Firebase:", err);
