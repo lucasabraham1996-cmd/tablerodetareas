@@ -9,7 +9,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <meta name="app-version" content="2026.08.12.1" />
+  <meta name="app-version" content="2026.09.18.xls-import.1" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Acciones" />
@@ -771,6 +771,7 @@
     }
   </style>
   <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body translate="no" class="notranslate">
   <div class="app" id="app">
@@ -790,9 +791,11 @@
         <button class="btn" id="integrationBtn"><i data-lucide="bell-ring"></i> Recordatorios</button>
         <button class="btn" id="downloadMobileBtn"><i data-lucide="smartphone"></i> Descargar móvil</button>
         <button class="btn" id="iphoneShortcutBtn"><i data-lucide="square-plus"></i> Acceso rápido iPhone</button>
+        <button class="btn" id="importXlsBtn" title="Importar tareas desde un archivo .XLS"><i data-lucide="file-spreadsheet"></i> Importar XLS</button>
         <button class="btn primary" id="newTaskBtn"><i data-lucide="plus"></i> Nueva tarea</button>
       </div>
     </header>
+    <input id="importXlsFile" type="file" accept=".xls,application/vnd.ms-excel" hidden />
 
     <section class="stats">
       <div class="stat panel" data-summary="total" tabindex="0" role="button"><div><strong id="statTotal">0</strong><small>Total</small></div><span class="badge">Tablero</span></div>
@@ -2166,6 +2169,198 @@
     }
 
     $("floatingDueClose").addEventListener("click", () => $("floatingDueAlert").classList.remove("show"));
+
+    const XLS_IMPORT_HEADERS = [
+      "Tarea",
+      "Categoría",
+      "Responsable",
+      "Fecha límite",
+      "Estado",
+      "Subestado",
+      "Prioridad",
+      "Descripción",
+      "Periodicidad",
+      "Día mensual"
+    ];
+
+    function normalizeImportText(value){
+      return String(value ?? "").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    }
+
+    function importCell(row, names){
+      const wanted = names.map(normalizeImportText);
+      for(const [key, value] of Object.entries(row || {})){
+        if(wanted.includes(normalizeImportText(key))) return value;
+      }
+      return "";
+    }
+
+    function formatImportedDate(value){
+      if(value === null || value === undefined || value === "") return "";
+
+      let d = null;
+      if(value instanceof Date && !isNaN(value.getTime())){
+        d = value;
+      }else if(typeof value === "number" && window.XLSX?.SSF?.parse_date_code){
+        const parts = window.XLSX.SSF.parse_date_code(value);
+        if(parts) d = new Date(parts.y, parts.m - 1, parts.d);
+      }else{
+        const s = String(value).trim();
+        let m = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/);
+        if(m){
+          const year = Number(m[3].length === 2 ? "20" + m[3] : m[3]);
+          d = new Date(year, Number(m[2]) - 1, Number(m[1]));
+        }else{
+          m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+          if(m) d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+        }
+      }
+
+      if(!d || isNaN(d.getTime())) return "";
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+    }
+
+    function resolveImportedStatus(value){
+      const statuses = getStatuses();
+      const raw = normalizeImportText(value);
+      if(!raw) return statuses[0]?.id || "urgente";
+
+      const direct = statuses.find(s =>
+        normalizeImportText(s.id) === raw || normalizeImportText(s.label) === raw
+      );
+      if(direct) return direct.id;
+
+      const aliases = {
+        "pendiente":"urgente",
+        "urgente":"urgente",
+        "en proceso":"en-proceso",
+        "proceso":"en-proceso",
+        "realizada":"completada",
+        "realizado":"completada",
+        "completada":"completada",
+        "completado":"completada",
+        "hecha":"completada",
+        "hecho":"completada",
+        "neutral":"neutral"
+      };
+      const target = aliases[raw];
+      return statuses.find(s => s.id === target)?.id || statuses[0]?.id || "urgente";
+    }
+
+    function resolveImportedPriority(value){
+      const raw = normalizeImportText(value);
+      if(["alta","high","urgente"].includes(raw)) return "alta";
+      if(["baja","low"].includes(raw)) return "baja";
+      return "media";
+    }
+
+    function resolveImportedRecurrence(value){
+      const raw = normalizeImportText(value);
+      return ["mensual","monthly","mes","si","yes"].includes(raw) ? "monthly" : "none";
+    }
+
+    async function importTasksFromXls(file){
+      if(!file) return;
+      if(!/\.xls$/i.test(file.name || "")){
+        toast("El archivo debe estar en formato .XLS");
+        return;
+      }
+      if(!window.XLSX){
+        toast("No se pudo cargar el lector de Excel");
+        return;
+      }
+
+      try{
+        const data = await file.arrayBuffer();
+        const workbook = XLSX.read(data, {type:"array", cellDates:true});
+        const firstSheet = workbook.SheetNames?.[0];
+        if(!firstSheet){
+          toast("El XLS no contiene hojas");
+          return;
+        }
+
+        const rows = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheet], {defval:"", raw:true});
+        if(!rows.length){
+          toast("El XLS no contiene tareas");
+          return;
+        }
+
+        const headers = Object.keys(rows[0] || {}).map(normalizeImportText);
+        if(!headers.includes(normalizeImportText("Tarea"))){
+          toast('Falta el encabezado obligatorio "Tarea"');
+          return;
+        }
+
+        let imported = 0;
+        let skipped = 0;
+
+        for(const row of rows){
+          const title = String(importCell(row, ["Tarea","Título","Titulo"]) || "").trim();
+          if(!title){
+            skipped++;
+            continue;
+          }
+
+          const description = String(importCell(row, ["Descripción","Descripcion","Detalle","Notas"]) || "").trim();
+          const substatus = String(importCell(row, ["Subestado"]) || "").trim();
+          const areaRaw = String(importCell(row, ["Categoría","Categoria","Área","Area"]) || "").trim();
+          const area = areaRaw || detectCategory(title, description, substatus);
+          const recurrence = resolveImportedRecurrence(importCell(row, ["Periodicidad","Recurrencia"]));
+          let recurrenceDay = Number(importCell(row, ["Día mensual","Dia mensual","Día","Dia"])) || null;
+          let deadline = formatImportedDate(importCell(row, ["Fecha límite","Fecha limite","Vencimiento","Fecha"]));
+
+          if(recurrence === "monthly"){
+            if(!recurrenceDay && deadline){
+              const parsed = parseDate(deadline);
+              recurrenceDay = parsed ? parsed.getDate() : null;
+            }
+            recurrenceDay = Math.min(31, Math.max(1, recurrenceDay || new Date().getDate()));
+            deadline = deadline || nextMonthlyDeadline(recurrenceDay);
+          }
+
+          tasks.push({
+            id: crypto.randomUUID(),
+            title,
+            area,
+            categoryMode: areaRaw ? "manual" : "auto",
+            owner: String(importCell(row, ["Responsable","Owner"]) || "").trim(),
+            deadline,
+            recurrence,
+            recurrenceDay: recurrence === "monthly" ? recurrenceDay : null,
+            status: resolveImportedStatus(importCell(row, ["Estado","Status"])),
+            substatus,
+            priority: resolveImportedPriority(importCell(row, ["Prioridad","Priority"])),
+            description,
+            attachments: []
+          });
+          imported++;
+        }
+
+        if(!imported){
+          toast("No encontré tareas válidas para importar");
+          return;
+        }
+
+        saveTasksCloudReady();
+        queueReminderSync();
+        renderBoard();
+        toast(`Se importaron ${imported} tarea${imported===1?"":"s"} desde XLS${skipped ? ` · ${skipped} fila${skipped===1?"":"s"} omitida${skipped===1?"":"s"}` : ""}`);
+      }catch(err){
+        console.error("Importación XLS:", err);
+        toast("No se pudo leer el XLS. Revisá el formato y los encabezados");
+      }
+    }
+
+    $("importXlsBtn").addEventListener("click", () => {
+      $("importXlsFile").value = "";
+      $("importXlsFile").click();
+    });
+
+    $("importXlsFile").addEventListener("change", async e => {
+      const file = e.target.files?.[0];
+      await importTasksFromXls(file);
+      e.target.value = "";
+    });
 
     $("newTaskBtn").addEventListener("click", () => openTaskDialog());
 
