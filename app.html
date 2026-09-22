@@ -9,7 +9,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <meta name="app-version" content="2026.09.18.xls-import.1" />
+  <meta name="app-version" content="2026.09.22.action-types.1" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Acciones" />
@@ -200,7 +200,7 @@
 
     .filters-grid{
       display:grid;
-      grid-template-columns:minmax(230px,1.4fr) 180px 180px 180px 180px auto;
+      grid-template-columns:minmax(230px,1.4fr) 165px 165px 165px 165px 165px auto;
       gap:10px;
     }
 
@@ -718,8 +718,9 @@
     .stat:focus-visible{outline:3px solid rgba(76,125,255,.26);outline-offset:2px}
 
     /* Tareas mensuales: identidad visual propia */
-    .task.monthly{background:linear-gradient(135deg,#f5efff,#eee7ff)!important;border-color:#bca8ee!important;--accent:#7c5ce0!important}
+    .task.monthly{box-shadow:inset 0 0 0 1px rgba(124,92,224,.12)}
     .tag.monthly-tag{background:#ede5ff;border-color:#c7b5f3;color:#593cae;font-weight:800}
+    .tag.daily-tag{background:#e4f4ff;border-color:#abd8f2;color:#176b96;font-weight:800}
 
     /* Modal de listado por resumen */
     #taskListDialog{width:min(920px,calc(100% - 24px))}
@@ -745,6 +746,33 @@
     .floating-due-alert.only-today{border-color:#e5c96d}
 
     .recurrence-day-wrap[hidden]{display:none}
+
+
+    /* Tipos de acción: color semántico de tarjeta + selector rápido */
+    .task-type-wrap{position:relative;margin-top:8px;display:inline-flex;max-width:100%}
+    .task-type-button{display:inline-flex;align-items:center;gap:7px;max-width:100%;border:1px solid var(--type-border,#bdc9df);background:var(--type-soft,#eef3fb);color:#273652;border-radius:9px;padding:6px 9px;cursor:pointer;font-size:.72rem;font-weight:800;line-height:1.1}
+    .task-type-button:hover{filter:brightness(.985);transform:translateY(-1px)}
+    .task-type-button svg{width:14px;height:14px;flex:0 0 auto}
+    .task-type-button .type-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .task-type-menu{position:absolute;left:0;top:calc(100% + 5px);z-index:35;width:min(310px,78vw);padding:7px;border-radius:12px;border:1px solid var(--line);background:#fff;box-shadow:0 16px 36px rgba(25,40,71,.18);display:grid;grid-template-columns:1fr 1fr;gap:5px}
+    .task-type-menu[hidden]{display:none}
+    .task-type-option{border:1px solid var(--line-soft);background:#fafcff;color:#33425f;border-radius:8px;padding:7px 8px;cursor:pointer;text-align:left;display:flex;align-items:center;gap:7px;font-size:.72rem;font-weight:700}
+    .task-type-option:hover{background:#f1f5fb;border-color:#bdc9df}
+    .task-type-option svg{width:14px;height:14px}
+    .type-dot{width:9px;height:9px;border-radius:999px;flex:0 0 auto}
+    .deadline-box{margin-top:9px;padding:9px 10px;border-radius:10px;border:1px solid #cbd5e1;background:#f8fafc;color:#34435f;display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:.72rem}
+    .deadline-box .deadline-main{display:flex;align-items:center;gap:7px;min-width:0;flex-wrap:wrap}
+    .deadline-box svg{width:15px;height:15px;flex:0 0 auto}
+    .deadline-box strong{font-size:.78rem;white-space:nowrap}
+    .deadline-box .deadline-relative{font-weight:800;text-align:right}
+    .deadline-box.no-date{color:#71809b;background:#f7f9fc}
+    .deadline-box.soon{background:#fff9e8;border-color:#e6cf8a;color:#735717}
+    .deadline-box.urgent,.deadline-box.overdue{background:#fff0f0;border-color:#e0a0a0;color:#8e2525;box-shadow:inset 4px 0 0 #d92d20}
+    .task.urgent-card{border-width:2px}
+    .task.done .deadline-box{opacity:.65;box-shadow:none}
+    .action-type-config-list{display:flex;flex-direction:column;gap:8px}
+    .action-type-config-row{display:grid;grid-template-columns:minmax(160px,1.4fr) 82px minmax(145px,1fr) auto;gap:8px;align-items:center}
+    .action-type-config-row .field{min-width:0}
 
     @media (max-width:1180px){
       header{position:static;flex-direction:column;align-items:flex-start}
@@ -780,7 +808,7 @@
         <div class="logo"><i data-lucide="layout-dashboard"></i></div>
         <div>
           <h1>Tablero de acciones</h1>
-          <div class="sub">Más columnas en vista simple, colores suaves según la lógica de tu captura: verde realizado, amarillo en proceso y rojo urgente</div>
+          <div class="sub">Tipos de acción por color e icono · rojo reservado para urgencias · vencimientos bien visibles al pie de cada tarjeta</div>
         </div>
       </div>
       <div class="toolbar">
@@ -811,6 +839,7 @@
         <div class="filters-grid">
           <input id="searchInput" class="field" placeholder="Buscar tarea, responsable o descripción..." />
           <select id="areaFilter" class="field"><option value="">Todas las categorías</option></select>
+          <select id="actionTypeFilter" class="field"><option value="">Todos los tipos</option></select>
           <select id="statusFilter" class="field"><option value="">Todos los estados</option></select>
           <select id="substatusFilter" class="field"><option value="">Todos los subestados</option></select>
           <select id="deadlineFilter" class="field">
@@ -858,6 +887,11 @@
           </div>
         </div>
         <div>
+          <label for="taskActionType">Tipo de acción</label>
+          <select id="taskActionType" class="field"></select>
+          <div class="hint">Define el color suave y el icono de la tarjeta. El rojo queda reservado para urgencia.</div>
+        </div>
+        <div>
           <label for="taskOwner">Responsable</label>
           <input id="taskOwner" class="field" placeholder="Ej.: Lucas" />
         </div>
@@ -869,6 +903,7 @@
           <label for="taskRecurrence">Periodicidad</label>
           <select id="taskRecurrence" class="field">
             <option value="none">No periódica</option>
+            <option value="daily">Diaria</option>
             <option value="monthly">Mensual</option>
           </select>
         </div>
@@ -933,8 +968,16 @@
 
   <dialog id="configDialog">
     <form id="configForm" class="modal">
-      <h3>Configurar categorías, iconos, estados y subestados</h3>
+      <h3>Configurar categorías, tipos, colores e iconos</h3>
 
+      <div class="config-section">
+        <h4>Tipos de acción · color de la tarjeta</h4>
+        <div class="hint">Aparecen dentro de cada tarjeta y se pueden cambiar con un clic. Podés crear los tuyos. El rojo está reservado para Urgente y tareas vencidas.</div>
+        <div class="action-type-config-list" id="actionTypeConfigList"></div>
+        <div class="modal-actions" style="justify-content:flex-start;margin-top:10px">
+          <button type="button" class="btn" id="addActionTypeBtn">+ Agregar tipo de acción</button>
+        </div>
+      </div>
 
       <div class="config-section">
         <h4>Categorías</h4>
@@ -1067,15 +1110,15 @@
       {name:"Inscripciones", color:"#7f72f4", icon:"clipboard-list"},
       {name:"Mejorar inscripciones", color:"#f2a10b", icon:"trending-up"},
       {name:"Hacer un plan de postventa", color:"#33b566", icon:"heart-handshake"},
-      {name:"Plan Retoma", color:"#ef7777", icon:"refresh-cw"},
+      {name:"Plan Retoma", color:"#0f9f78", icon:"refresh-cw"},
       {name:"Morosos", color:"#4b81d8", icon:"credit-card"},
       {name:"Rematriculaciones y reinscripciones", color:"#b75082", icon:"book-open-check"},
       {name:"Programa Puente", color:"#3d8f97", icon:"bridge"},
       {name:"Día del Estudiante", color:"#cc78d5", icon:"party-popper"},
-      {name:"Bajas", color:"#b51012", icon:"user-minus"},
+      {name:"Bajas", color:"#475569", icon:"user-minus"},
       {name:"Satisfacción", color:"#9ab9e4", icon:"message-square-text"},
       {name:"Jornada de Puertas Abiertas", color:"#d2a472", icon:"door-open"},
-      {name:"No inicios", color:"#ea6967", icon:"pause-circle"},
+      {name:"No inicios", color:"#c26b28", icon:"pause-circle"},
       {name:"Pedidos", color:"#c47ca3", icon:"package"},
       {name:"Acciones Talleres", color:"#1e4f9b", icon:"trophy"},
       {name:"Becas", color:"#8eb5e0", icon:"graduation-cap"},
@@ -1086,11 +1129,29 @@
     ];
     let columnDefs = [];
 
+
     const defaultStatuses = [
-      {id:"urgente", label:"Urgente", color:"#e6a4a4"},
+      {id:"pendiente", label:"Pendiente", color:"#8ca2d8"},
+      {id:"urgente", label:"Urgente", color:"#d92d20"},
       {id:"en-proceso", label:"En proceso", color:"#ecd88a"},
       {id:"completada", label:"Realizada", color:"#bfd6b0"},
       {id:"neutral", label:"Neutral", color:"#d9e2ef"}
+    ];
+
+    const defaultActionTypes = [
+      {id:"por-hacer", label:"Por hacer", color:"#4c7dff", icon:"square-check-big"},
+      {id:"seguimiento", label:"Dar seguimiento", color:"#7c5ce0", icon:"radar"},
+      {id:"recordatorio", label:"Recordatorio", color:"#64748b", icon:"bell"},
+      {id:"tarea-diaria", label:"Tarea diaria", color:"#0284c7", icon:"calendar-check-2"},
+      {id:"reunion", label:"Reunión / coordinación", color:"#0f9f78", icon:"users-round"},
+      {id:"contactar", label:"Llamar / contactar", color:"#6366f1", icon:"phone-call"},
+      {id:"revisar", label:"Revisar / analizar", color:"#8b5cf6", icon:"search-check"},
+      {id:"enviar", label:"Enviar / entregar", color:"#0d9488", icon:"send"},
+      {id:"esperando", label:"Esperando respuesta", color:"#d39e00", icon:"hourglass"},
+      {id:"fecha-clave", label:"Fecha clave", color:"#b7791f", icon:"calendar-clock"},
+      {id:"delegada", label:"Delegada", color:"#3fa36c", icon:"user-round-check"},
+      {id:"para-evaluar", label:"Para evaluar", color:"#8492a6", icon:"lightbulb"},
+      {id:"bloqueada", label:"Bloqueada", color:"#c26b28", icon:"lock-keyhole"}
     ];
 
     const defaultSubstatuses = [
@@ -1182,13 +1243,22 @@
     function loadSettings(){
       try{
         const s = JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {};
-        if(!Array.isArray(s.statuses) || !s.statuses.length) s.statuses = defaultStatuses;
+        if(!Array.isArray(s.statuses) || !s.statuses.length) s.statuses = defaultStatuses.map(x => ({...x}));
+        if(!s.statuses.some(x => x.id === "pendiente")) s.statuses.unshift({...defaultStatuses[0]});
+        s.statuses = s.statuses.map(x => x.id === "urgente" ? {...x, color:"#d92d20"} : x);
+        if(!Array.isArray(s.actionTypes) || !s.actionTypes.length) s.actionTypes = defaultActionTypes.map(x => ({...x}));
         if(!Array.isArray(s.substatuses) || !s.substatuses.length) s.substatuses = defaultSubstatuses;
         if(!s.firebaseConfig) s.firebaseConfig = JSON.stringify(DEFAULT_FIREBASE_CONFIG, null, 2);
         if(!Array.isArray(s.categories) || !s.categories.length) s.categories = defaultColumnDefs.map(c => ({...c}));
+        s.categories = s.categories.map(cat => {
+          if(cat.name === "Plan Retoma" && String(cat.color).toLowerCase() === "#ef7777") return {...cat,color:"#0f9f78"};
+          if(cat.name === "Bajas" && String(cat.color).toLowerCase() === "#b51012") return {...cat,color:"#475569"};
+          if(cat.name === "No inicios" && String(cat.color).toLowerCase() === "#ea6967") return {...cat,color:"#c26b28"};
+          return cat;
+        });
         return s;
       }catch(e){
-        return {statuses: defaultStatuses, substatuses: defaultSubstatuses, categories: defaultColumnDefs.map(c => ({...c})), firebaseConfig: JSON.stringify(DEFAULT_FIREBASE_CONFIG, null, 2)};
+        return {statuses: defaultStatuses.map(x => ({...x})), actionTypes: defaultActionTypes.map(x => ({...x})), substatuses: defaultSubstatuses, categories: defaultColumnDefs.map(c => ({...c})), firebaseConfig: JSON.stringify(DEFAULT_FIREBASE_CONFIG, null, 2)};
       }
     }
 
