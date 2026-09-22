@@ -1431,7 +1431,7 @@
       return r >= 150 && r > g * 1.28 && r > b * 1.18;
     }
 
-    function colorSwatchStyle    function colorSwatchStyle(hex, alpha=.33){
+    function colorSwatchStyle(hex, alpha=.33){
       const {r,g,b} = hexToRgb(hex);
       return `background:rgba(${r},${g},${b},${alpha}); border-color:rgba(${r},${g},${b},.72);`;
     }
@@ -1616,7 +1616,7 @@
       `;
     }
 
-    function slug(text){    function slug(text){
+    function slug(text){
       return text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
     }
 
@@ -2033,7 +2033,7 @@
       renderBoard();
     }
 
-    function toggleColumn(areaEncoded){    function toggleColumn(areaEncoded){
+    function toggleColumn(areaEncoded){
       const area = decodeURIComponent(areaEncoded);
       if(collapsedAreas.has(area)) collapsedAreas.delete(area);
       else collapsedAreas.add(area);
