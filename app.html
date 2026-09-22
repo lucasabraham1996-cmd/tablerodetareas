@@ -987,7 +987,7 @@
 
       <div class="config-section">
         <h4>Estados</h4>
-        <div class="hint">Por defecto: rojo = urgente y no hecha, amarillo = en proceso, verde = realizada. Podés cambiar nombres y colores. El identificador se usa internamente.</div>
+        <div class="hint">Rojo = Urgente y queda reservado para ese estado. Los demás estados pueden personalizarse sin usar rojo.</div>
         <div class="status-config-list" id="statusConfigList"></div>
         <div class="modal-actions" style="justify-content:flex-start;margin-top:10px">
           <button type="button" class="btn" id="addStatusBtn">+ Agregar estado</button>
@@ -2145,9 +2145,19 @@
     });
 
     function renderConfigDialog(){
+      const actionTypeBox = $("actionTypeConfigList");
       const categoryBox = $("categoryConfigList");
       const statusBox = $("statusConfigList");
       const subBox = $("substatusConfigList");
+
+      actionTypeBox.innerHTML = getActionTypes().map((x, i) => `
+        <div class="action-type-config-row">
+          <input class="field action-type-label" data-index="${i}" data-id="${esc(x.id)}" value="${esc(x.label)}" placeholder="Tipo de acción" />
+          <input type="color" class="field action-type-color" data-index="${i}" value="${esc(normalizeColor(x.color))}" title="Color" />
+          <input class="field action-type-icon" data-index="${i}" value="${esc(x.icon || "circle-dot")}" placeholder="Icono Lucide" />
+          <button type="button" class="btn" onclick="removeActionTypeRow(${i})">Quitar</button>
+        </div>
+      `).join("");
 
       categoryBox.innerHTML = columnDefs.map((c, i) => `
         <div class="category-config-row">
@@ -2181,6 +2191,15 @@
       return "#d9e2ef";
     }
 
+    function removeActionTypeRow(index){
+      if(getActionTypes().length <= 1){
+        toast("Debe quedar al menos un tipo de acción");
+        return;
+      }
+      settings.actionTypes.splice(index, 1);
+      renderConfigDialog();
+    }
+
     function removeStatusRow(index){
       if(getStatuses().length <= 1){
         toast("Debe quedar al menos un estado");
@@ -2194,6 +2213,16 @@
       settings.substatuses.splice(index, 1);
       renderConfigDialog();
     }
+
+    $("addActionTypeBtn").addEventListener("click", () => {
+      settings.actionTypes.push({
+        id:"tipo-" + Math.random().toString(36).slice(2,8),
+        label:"Nuevo tipo",
+        color:"#4c7dff",
+        icon:"circle-dot"
+      });
+      renderConfigDialog();
+    });
 
     $("addStatusBtn").addEventListener("click", () => {
       settings.statuses.push({
@@ -2216,6 +2245,25 @@
 
     $("configForm").addEventListener("submit", e => {
       e.preventDefault();
+
+      const typeLabels = [...document.querySelectorAll(".action-type-label")];
+      const typeColors = [...document.querySelectorAll(".action-type-color")];
+      const typeIcons = [...document.querySelectorAll(".action-type-icon")];
+      const newActionTypes = typeLabels.map((input,i) => ({
+        id: input.dataset.id || ("tipo-" + Math.random().toString(36).slice(2,8)),
+        label: input.value.trim(),
+        color: typeColors[i]?.value || "#4c7dff",
+        icon: typeIcons[i]?.value.trim() || "circle-dot"
+      })).filter(x => x.label);
+
+      if(!newActionTypes.length){
+        toast("Cargá al menos un tipo de acción");
+        return;
+      }
+      if(newActionTypes.some(x => isUrgencyRedColor(x.color))){
+        toast("El rojo está reservado para Urgente. Elegí otro color para los tipos de acción.");
+        return;
+      }
 
       const labels = [...document.querySelectorAll(".status-label")];
       const ids = [...document.querySelectorAll(".status-id")];
@@ -2250,6 +2298,10 @@
       });
 
       const categoryColors = [...document.querySelectorAll(".category-color")];
+      if(categoryColors.some(x => isUrgencyRedColor(x.value))){
+        toast("El rojo está reservado para Urgente. Elegí otro color para las categorías.");
+        return;
+      }
       const categoryIcons = [...document.querySelectorAll(".category-icon")];
       columnDefs = columnDefs.map((c, i) => ({
         ...c,
@@ -2257,7 +2309,15 @@
         icon: categoryIcons[i]?.value.trim() || "circle-dot"
       }));
 
-      settings.statuses = newStatuses;
+      const normalizedStatuses = newStatuses.map(s => s.id === "urgente" ? {...s,color:"#d92d20"} : s);
+      if(normalizedStatuses.some(s => s.id !== "urgente" && isUrgencyRedColor(s.color))){
+        toast("El rojo está reservado para el estado Urgente.");
+        return;
+      }
+      settings.statuses = normalizedStatuses;
+      settings.actionTypes = newActionTypes;
+      const validActionTypeIds = new Set(newActionTypes.map(x => x.id));
+      tasks = tasks.map(t => validActionTypeIds.has(t.actionType) ? t : {...t, actionType:newActionTypes[0].id});
       settings.substatuses = newSubstatuses.length ? newSubstatuses : defaultSubstatuses;
       settings.categories = columnDefs.map(c => ({...c}));
       saveSettings();
@@ -2599,19 +2659,24 @@
       renderBoard();
     });
 
-    ["searchInput","areaFilter","statusFilter","substatusFilter","deadlineFilter"].forEach(id => {
+    ["searchInput","areaFilter","actionTypeFilter","statusFilter","substatusFilter","deadlineFilter"].forEach(id => {
       $(id).addEventListener(id === "searchInput" ? "input" : "change", renderBoard);
     });
 
     $("clearFiltersBtn").addEventListener("click", () => {
       $("searchInput").value = "";
       $("areaFilter").value = "";
+      $("actionTypeFilter").value = "";
       $("statusFilter").value = "";
       $("substatusFilter").value = "";
       $("deadlineFilter").value = "";
       renderBoard();
     });
 
+
+    document.addEventListener("click", () => {
+      document.querySelectorAll(".task-type-menu").forEach(menu => menu.hidden = true);
+    });
 
     function refreshIcons(){
       if(window.lucide) window.lucide.createIcons();
