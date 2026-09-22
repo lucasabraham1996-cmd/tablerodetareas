@@ -1863,7 +1863,8 @@
       $("taskArea").value = areaEncoded ? decodeURIComponent(areaEncoded) : "";
       $("categoryMode").value = areaEncoded ? "manual" : "auto";
       updateCategoryModeUI();
-      $("taskStatus").value = getStatuses()[0]?.id || "urgente";
+      $("taskStatus").value = getStatuses()[0]?.id || "pendiente";
+      $("taskActionType").value = getActionTypes()[0]?.id || "por-hacer";
       $("taskPriority").value = "media";
       $("taskSubstatus").value = "";
       $("taskRecurrence").value = "none";
@@ -1907,14 +1908,19 @@
     }
 
     function updateRecurrenceUI(){
-      const monthly = $("taskRecurrence")?.value === "monthly";
+      const recurrence = $("taskRecurrence")?.value || "none";
+      const monthly = recurrence === "monthly";
       if($("recurrenceDayWrap")) $("recurrenceDayWrap").hidden = !monthly;
       if(monthly && !$("taskRecurrenceDay").value){
         const deadline = parseDate($("taskDeadline").value);
         $("taskRecurrenceDay").value = deadline ? deadline.getDate() : new Date().getDate();
       }
+      if(recurrence === "daily" && $("taskActionType")){
+        $("taskActionType").value = "tarea-diaria";
+        if(!$("taskDeadline").value) $("taskDeadline").value = todayIso();
+      }
     }
-    $("taskRecurrence").addEventListener("change", updateRecurrenceUI);
+    $("taskRecurrence").addEventListener("change", updateRecurrenceUI);    $("taskRecurrence").addEventListener("change", updateRecurrenceUI);
     $("taskDeadline").addEventListener("change", () => {
       if($("taskRecurrence").value === "monthly" && $("taskDeadline").value){
         const d = parseDate($("taskDeadline").value);
@@ -1925,6 +1931,14 @@
     $("categoryMode").addEventListener("change", updateCategoryModeUI);
     ["taskTitle","taskDescription","taskSubstatus"].forEach(id => {
       $(id).addEventListener("input", updateDetectedCategoryPreview);
+    });
+
+    $("taskActionType").addEventListener("change", () => {
+      if($("taskActionType").value === "tarea-diaria"){
+        $("taskRecurrence").value = "daily";
+        if(!$("taskDeadline").value) $("taskDeadline").value = todayIso();
+        updateRecurrenceUI();
+      }
     });
 
     $("taskAttachments").addEventListener("change", async e => {
@@ -1955,7 +1969,8 @@
       $("taskRecurrence").value = task.recurrence || "none";
       $("taskRecurrenceDay").value = task.recurrenceDay || "";
       updateRecurrenceUI();
-      $("taskStatus").value = task.status || getStatuses()[0]?.id || "urgente";
+      $("taskStatus").value = task.status || getStatuses()[0]?.id || "pendiente";
+      $("taskActionType").value = task.actionType || inferActionType(task);
       $("taskSubstatus").value = task.substatus || "";
       $("taskPriority").value = task.priority || "media";
       $("taskDescription").value = task.description || "";
@@ -1991,20 +2006,25 @@
       const task = tasks.find(t => t.id === id);
       if(!task) return;
 
-      if(checked && task.recurrence === "monthly" && !task.nextGeneratedId){
+      if(checked && (task.recurrence === "monthly" || task.recurrence === "daily") && !task.nextGeneratedId){
         const nextId = crypto.randomUUID();
+        const nextDeadline = task.recurrence === "daily"
+          ? followingDailyDeadline(task.deadline)
+          : followingMonthlyDeadline(task.deadline, task.recurrenceDay);
         const nextTask = {
           ...task,
           id: nextId,
-          deadline: followingMonthlyDeadline(task.deadline, task.recurrenceDay),
-          status: task.recurringStatus || getStatuses()[0]?.id || "urgente",
+          deadline: nextDeadline,
+          status: task.recurringStatus || getStatuses()[0]?.id || "pendiente",
           nextGeneratedId: null,
           previousOccurrenceId: task.id
         };
         task.nextGeneratedId = nextId;
         task.recurringStatus = task.status;
         tasks.push(nextTask);
-        toast(`Próxima tarea mensual creada para ${nextTask.deadline}`);
+        toast(task.recurrence === "daily"
+          ? `Próxima tarea diaria creada para ${nextTask.deadline}`
+          : `Próxima tarea mensual creada para ${nextTask.deadline}`);
       }
 
       task.status = checked ? "completada" : (task.recurringStatus || getStatuses()[0]?.id || "pendiente");
@@ -2013,7 +2033,7 @@
       renderBoard();
     }
 
-    function toggleColumn(areaEncoded){
+    function toggleColumn(areaEncoded){    function toggleColumn(areaEncoded){
       const area = decodeURIComponent(areaEncoded);
       if(collapsedAreas.has(area)) collapsedAreas.delete(area);
       else collapsedAreas.add(area);
@@ -2034,7 +2054,8 @@
         area,
         owner:"",
         deadline:"",
-        status:getStatuses()[0]?.id || "urgente",
+        status:getStatuses()[0]?.id || "pendiente",
+        actionType:"por-hacer",
         substatus:"",
         priority:"media",
         description:"",
@@ -2067,12 +2088,14 @@
         recurrence: $("taskRecurrence").value,
         recurrenceDay: $("taskRecurrence").value === "monthly" ? Math.min(31, Math.max(1, Number($("taskRecurrenceDay").value) || new Date().getDate())) : null,
         status: $("taskStatus").value,
+        actionType: $("taskActionType").value || "por-hacer",
         substatus,
         priority: $("taskPriority").value,
         description,
         attachments: [...workingAttachments]
       };
 
+      if(data.recurrence === "daily") data.deadline = data.deadline || todayIso();
       if(data.recurrence === "monthly"){
         data.deadline = data.deadline || nextMonthlyDeadline(data.recurrenceDay);
       }
@@ -2099,6 +2122,7 @@
         const previousArea = data.area;
         const previousMode = categoryMode;
         const previousStatus = data.status;
+        const previousActionType = data.actionType;
         const previousOwner = data.owner;
 
         $("taskForm").reset();
@@ -2107,6 +2131,7 @@
         $("categoryMode").value = previousMode;
         $("taskArea").value = previousMode === "manual" ? previousArea : "";
         $("taskStatus").value = previousStatus;
+        $("taskActionType").value = previousActionType;
         $("taskOwner").value = previousOwner;
         $("taskPriority").value = "media";
         workingAttachments = [];
