@@ -1267,6 +1267,7 @@
       settings.collapsedAreas = [...collapsedAreas];
       settings.compactMode = compactMode;
       settings.categories = columnDefs.map(c => ({...c}));
+      settings.actionTypes = getActionTypes().map(x => ({...x}));
       localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
     }
 
@@ -1290,6 +1291,27 @@
       return settings.substatuses && settings.substatuses.length ? settings.substatuses : defaultSubstatuses;
     }
 
+    function getActionTypes(){
+      return settings.actionTypes && settings.actionTypes.length ? settings.actionTypes : defaultActionTypes;
+    }
+
+    function actionTypeById(id){
+      return getActionTypes().find(x => x.id === id) || getActionTypes()[0] || defaultActionTypes[0];
+    }
+
+    function inferActionType(task){
+      const source = normalizeTextForDetection([task?.title, task?.description, task?.substatus].join(" "));
+      if(task?.recurrence === "daily") return "tarea-diaria";
+      if(source.includes("esperando respuesta") || source.includes("esperando envio") || source.includes("esperando confirmacion")) return "esperando";
+      if(source.includes("reunion") || source.includes("coordinar")) return "reunion";
+      if(source.includes("llamar") || source.includes("contactar") || source.includes("hablar con")) return "contactar";
+      if(source.includes("enviar") || source.includes("entregar") || source.includes("mandar")) return "enviar";
+      if(source.includes("revisar") || source.includes("analizar") || source.includes("evaluar") || source.includes("ver ")) return "revisar";
+      if(source.includes("seguimiento") || source.includes("seguir ") || source.includes("volver a")) return "seguimiento";
+      if(source.includes("recordar") || source.includes("recordatorio")) return "recordatorio";
+      return "por-hacer";
+    }
+
     function statusById(id){
       return getStatuses().find(s => s.id === id) || getStatuses()[0] || defaultStatuses[0];
     }
@@ -1297,9 +1319,12 @@
     function ensureTaskStatuses(){
       const valid = new Set(getStatuses().map(s => s.id));
       tasks.forEach(t => {
-        if(!valid.has(t.status)) t.status = getStatuses()[0]?.id || "urgente";
+        if(!valid.has(t.status)) t.status = getStatuses()[0]?.id || "pendiente";
+        if(!t.actionType || !getActionTypes().some(x => x.id === t.actionType)) t.actionType = inferActionType(t);
         if(!Array.isArray(t.attachments)) t.attachments = [];
       });
+      settings.actionTypes = getActionTypes().map(x => ({...x}));
+      saveSettings();
       saveTasks();
     }
 
@@ -1343,6 +1368,17 @@
       return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
     }
 
+    function todayIso(fromDate=new Date()){
+      const d = startOfDay(fromDate);
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+    }
+
+    function followingDailyDeadline(currentDeadline){
+      const d = parseDate(currentDeadline) || startOfDay();
+      d.setDate(d.getDate()+1);
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+    }
+
     function nextMonthlyDeadline(requestedDay, fromDate=new Date()){
       const today = startOfDay(fromDate);
       let candidate = parseDate(monthlyDateFor(today.getFullYear(), today.getMonth(), requestedDay));
@@ -1380,16 +1416,22 @@
       return {r:(num>>16)&255, g:(num>>8)&255, b:num&255};
     }
 
-    function taskStyle(statusId){
-      const status = statusById(statusId);
-      const {r,g,b} = hexToRgb(status.color);
-      const bg = `rgba(${r},${g},${b},0.33)`;   // leve, no invasivo
-      const border = `rgba(${r},${g},${b},0.72)`;
-      const accent = `rgba(${r},${g},${b},1)`;
-      return `background:${bg}; border-color:${border}; --accent:${accent};`;
+    function taskStyle(task){
+      const type = actionTypeById(task?.actionType);
+      const {r,g,b} = hexToRgb(type.color);
+      const urgent = task?.status === "urgente";
+      const border = urgent ? "rgba(217,45,32,.78)" : `rgba(${r},${g},${b},.58)`;
+      const accent = urgent ? "#d92d20" : `rgba(${r},${g},${b},1)`;
+      const bg = `rgba(${r},${g},${b},.14)`;
+      return `background:${bg}; border-color:${border}; --accent:${accent}; --type-soft:rgba(${r},${g},${b},.12); --type-border:rgba(${r},${g},${b},.48);`;
     }
 
-    function colorSwatchStyle(hex, alpha=.33){
+    function isUrgencyRedColor(hex){
+      const {r,g,b} = hexToRgb(hex);
+      return r >= 150 && r > g * 1.28 && r > b * 1.18;
+    }
+
+    function colorSwatchStyle    function colorSwatchStyle(hex, alpha=.33){
       const {r,g,b} = hexToRgb(hex);
       return `background:rgba(${r},${g},${b},${alpha}); border-color:rgba(${r},${g},${b},.72);`;
     }
@@ -1399,11 +1441,16 @@
     function renderSelectors(){
       const areas = uniqueAreas();
       const statuses = getStatuses();
+      const actionTypes = getActionTypes();
       const substatuses = getSubstatuses();
 
       const currentArea = $("areaFilter").value;
       $("areaFilter").innerHTML = `<option value="">Todas las categorías</option>` + areas.map(a => `<option value="${esc(a)}">${esc(a)}</option>`).join("");
       $("areaFilter").value = areas.includes(currentArea) ? currentArea : "";
+
+      const currentActionType = $("actionTypeFilter").value;
+      $("actionTypeFilter").innerHTML = `<option value="">Todos los tipos</option>` + actionTypes.map(x => `<option value="${esc(x.id)}">${esc(x.label)}</option>`).join("");
+      $("actionTypeFilter").value = actionTypes.some(x => x.id === currentActionType) ? currentActionType : "";
 
       const currentStatus = $("statusFilter").value;
       $("statusFilter").innerHTML = `<option value="">Todos los estados</option>` + statuses.map(s => `<option value="${esc(s.id)}">${esc(s.label)}</option>`).join("");
@@ -1416,12 +1463,14 @@
 
       $("areaList").innerHTML = areas.map(a => `<option value="${esc(a)}"></option>`).join("");
       $("taskStatus").innerHTML = statuses.map(s => `<option value="${esc(s.id)}">${esc(s.label)}</option>`).join("");
+      $("taskActionType").innerHTML = actionTypes.map(x => `<option value="${esc(x.id)}">${esc(x.label)}</option>`).join("");
       $("substatusList").innerHTML = uniqueSub.map(s => `<option value="${esc(s)}"></option>`).join("");
     }
 
     function filteredTasks(){
       const q = $("searchInput").value.trim().toLowerCase();
       const area = $("areaFilter").value;
+      const actionType = $("actionTypeFilter").value;
       const status = $("statusFilter").value;
       const substatus = $("substatusFilter").value;
       const deadline = $("deadlineFilter").value;
@@ -1429,6 +1478,7 @@
       return tasks.filter(t => {
         if(onlyPending && t.status === "completada") return false;
         if(area && t.area !== area) return false;
+        if(actionType && t.actionType !== actionType) return false;
         if(status && t.status !== status) return false;
         if(substatus && (t.substatus || "") !== substatus) return false;
 
@@ -1459,21 +1509,84 @@
       </div>`;
     }
 
+    function formatDateAR(s){
+      const d = parseDate(s);
+      return d ? d.toLocaleDateString("es-AR",{day:"2-digit",month:"2-digit",year:"numeric"}) : "";
+    }
+
+    function deadlineBoxHtml(t){
+      if(!t.deadline){
+        return `<div class="deadline-box no-date"><div class="deadline-main"><i data-lucide="calendar-minus-2"></i><span>Sin fecha de vencimiento</span></div></div>`;
+      }
+      const diff = dayDiff(t.deadline);
+      const overdue = diff !== null && diff < 0 && t.status !== "completada";
+      const today = diff === 0 && t.status !== "completada";
+      const soon = diff !== null && diff > 0 && diff <= 3 && t.status !== "completada";
+      const urgent = t.status === "urgente" && t.status !== "completada";
+      const cls = overdue ? "overdue" : (urgent ? "urgent" : (today || soon ? "soon" : ""));
+      return `<div class="deadline-box ${cls}">
+        <div class="deadline-main"><i data-lucide="calendar-clock"></i><span>Vencimiento</span><strong>${esc(formatDateAR(t.deadline))}</strong></div>
+        <span class="deadline-relative">${esc(deadlineLabel(t.deadline))}</span>
+      </div>`;
+    }
+
+    function actionTypeMenuHtml(t){
+      const current = actionTypeById(t.actionType);
+      return `<div class="task-type-wrap">
+        <button type="button" class="task-type-button" onclick="toggleActionTypeMenu(event,'${t.id}')" title="Cambiar tipo de acción">
+          <i data-lucide="${esc(current.icon || "circle-dot")}"></i>
+          <span class="type-label">${esc(current.label)}</span>
+          <i data-lucide="chevron-down"></i>
+        </button>
+        <div class="task-type-menu" id="type-menu-${t.id}" hidden onclick="event.stopPropagation()">
+          ${getActionTypes().map(x => `<button type="button" class="task-type-option" onclick="setActionType('${t.id}','${esc(x.id)}')">
+            <span class="type-dot" style="background:${esc(x.color)}"></span>
+            <i data-lucide="${esc(x.icon || "circle-dot")}"></i>
+            <span>${esc(x.label)}</span>
+          </button>`).join("")}
+        </div>
+      </div>`;
+    }
+
+    function toggleActionTypeMenu(event,id){
+      event?.stopPropagation();
+      const target = document.getElementById(`type-menu-${id}`);
+      document.querySelectorAll(".task-type-menu").forEach(menu => {
+        if(menu !== target) menu.hidden = true;
+      });
+      if(target) target.hidden = !target.hidden;
+      refreshIcons();
+    }
+
+    function setActionType(id,typeId){
+      const task = tasks.find(t => t.id === id);
+      if(!task || !getActionTypes().some(x => x.id === typeId)) return;
+      task.actionType = typeId;
+      if(typeId === "tarea-diaria"){
+        task.recurrence = "daily";
+        task.deadline = task.deadline || todayIso();
+      }
+      saveTasksCloudReady();
+      renderBoard();
+      toast(`Tipo: ${actionTypeById(typeId).label}`);
+    }
+
     function taskCard(t){
       const due = t.deadline && dayDiff(t.deadline) !== null && dayDiff(t.deadline) <= 0 && t.status !== "completada";
       const status = statusById(t.status);
       return `
-        <article class="task ${t.status === "completada" ? "done" : ""} ${due ? "overdue" : ""} ${t.recurrence === "monthly" ? "monthly" : ""}" style="${taskStyle(t.status)}">
+        <article class="task ${t.status === "completada" ? "done" : ""} ${due ? "overdue" : ""} ${t.status === "urgente" ? "urgent-card" : ""} ${t.recurrence === "monthly" ? "monthly" : ""} ${t.recurrence === "daily" ? "daily" : ""}" style="${taskStyle(t)}">
           <div class="task-top">
-            <input class="check" type="checkbox" ${t.status === "completada" ? "checked" : ""} onchange="toggleDone('${t.id}', this.checked)" />
+            <input class="check" type="checkbox" title="Marcar como realizada" ${t.status === "completada" ? "checked" : ""} onchange="toggleDone('${t.id}', this.checked)" />
             <div class="task-main">
               <div class="task-title">${esc(t.title)}</div>
+              ${actionTypeMenuHtml(t)}
               ${t.description ? `<div class="task-desc">${esc(t.description)}</div>` : ""}
               <div class="task-tags">
                 <span class="tag status-chip">${esc(status.label)}</span>
                 ${t.substatus ? `<span class="tag">${esc(t.substatus)}</span>` : ""}
                 ${t.categoryMode === "auto" ? `<span class="tag"><i data-lucide="sparkles"></i> Categoría detectada</span>` : ""}
-                ${t.deadline ? `<span class="tag"><i data-lucide="calendar-days"></i> ${esc(deadlineLabel(t.deadline))}</span>` : ""}
+                ${t.recurrence === "daily" ? `<span class="tag daily-tag"><i data-lucide="repeat-2"></i> Diaria</span>` : ""}
                 ${t.recurrence === "monthly" ? `<span class="tag monthly-tag"><i data-lucide="repeat-2"></i> Mensual · día ${esc(t.recurrenceDay || "-")}</span>` : ""}
                 ${t.priority ? `<span class="tag">Prioridad ${priorityLabel(t.priority)}</span>` : ""}
                 ${t.owner ? `<span class="tag"><i data-lucide="user-round"></i> ${esc(t.owner)}</span>` : ""}
@@ -1498,11 +1611,12 @@
               </svg>
             </button>
           </div>
+          ${deadlineBoxHtml(t)}
         </article>
       `;
     }
 
-    function slug(text){
+    function slug(text){    function slug(text){
       return text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
     }
 
@@ -1593,6 +1707,7 @@
           <div class="summary-item-meta">
             <span>${esc(t.area || "Sin categoría")}</span>
             <span>· ${esc(statusById(t.status).label)}</span>
+            <span>· ${esc(actionTypeById(t.actionType).label)}</span>
             ${t.owner ? `<span>· ${esc(t.owner)}</span>` : ""}
             ${t.deadline ? `<span>· ${esc(deadlineLabel(t.deadline))}</span>` : ""}
             ${t.recurrence === "monthly" ? `<span>· Mensual día ${esc(t.recurrenceDay || "-")}</span>` : ""}
