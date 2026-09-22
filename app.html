@@ -1141,7 +1141,8 @@
     const defaultActionTypes = [
       {id:"por-hacer", label:"Por hacer", color:"#4c7dff", icon:"square-check-big"},
       {id:"seguimiento", label:"Dar seguimiento", color:"#7c5ce0", icon:"radar"},
-      {id:"recordatorio", label:"Recordatorio", color:"#64748b", icon:"bell"},
+      {id:"recordatorio", label:"Recordatorio / tener presente", color:"#64748b", icon:"bell"},
+      {id:"con-vencimiento", label:"Tarea con vencimiento", color:"#ca8a04", icon:"calendar-range"},
       {id:"tarea-diaria", label:"Tarea diaria", color:"#0284c7", icon:"calendar-check-2"},
       {id:"reunion", label:"Reunión / coordinación", color:"#0f9f78", icon:"users-round"},
       {id:"contactar", label:"Llamar / contactar", color:"#6366f1", icon:"phone-call"},
@@ -1247,6 +1248,13 @@
         if(!s.statuses.some(x => x.id === "pendiente")) s.statuses.unshift({...defaultStatuses[0]});
         s.statuses = s.statuses.map(x => x.id === "urgente" ? {...x, color:"#d92d20"} : x);
         if(!Array.isArray(s.actionTypes) || !s.actionTypes.length) s.actionTypes = defaultActionTypes.map(x => ({...x}));
+        if(!s.actionTypesVersion || s.actionTypesVersion < 2){
+          const dueType = defaultActionTypes.find(x => x.id === "con-vencimiento");
+          if(dueType && !s.actionTypes.some(x => x.id === dueType.id)) s.actionTypes.splice(1,0,{...dueType});
+          const reminder = s.actionTypes.find(x => x.id === "recordatorio");
+          if(reminder && reminder.label === "Recordatorio") reminder.label = "Recordatorio / tener presente";
+          s.actionTypesVersion = 2;
+        }
         if(!Array.isArray(s.substatuses) || !s.substatuses.length) s.substatuses = defaultSubstatuses;
         if(!s.firebaseConfig) s.firebaseConfig = JSON.stringify(DEFAULT_FIREBASE_CONFIG, null, 2);
         if(!Array.isArray(s.categories) || !s.categories.length) s.categories = defaultColumnDefs.map(c => ({...c}));
