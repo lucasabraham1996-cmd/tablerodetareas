@@ -9,7 +9,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <meta name="app-version" content="2026.09.28.cloud-sync.1" />
+  <meta name="app-version" content="2026.09.28.restore-work.1" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Acciones" />
@@ -1175,6 +1175,19 @@
       "Coordinado"
     ];
 
+    const WORK_TASKS_20260918 = [
+      {id:"work-20260918-01",title:"Hacer la capacitación de septiembre sobre Moras y Retención",area:"Morosos",categoryMode:"manual",owner:"Lucas",deadline:"2026-10-02",recurrence:"none",recurrenceDay:null,status:"urgente",substatus:"En análisis",priority:"alta",description:"Objetivo: Obj. 1. Evidencia esperada: material utilizado, asistentes, protocolo explicado y una pequeña evaluación o comparación antes/después.",attachments:[]},
+      {id:"work-20260918-02",title:"Auditar la gestión de leads de las 4 asistentes",area:"Inscripciones",categoryMode:"manual",owner:"Lucas",deadline:"2026-10-02",recurrence:"none",recurrenceDay:null,status:"urgente",substatus:"En análisis",priority:"alta",description:"Objetivo: Obj. 2. Evidencia esperada: % gestionados en menos de 24 h, % CRM completo, pendientes, seguimientos vencidos y resultado individual.",attachments:[]},
+      {id:"work-20260918-03",title:"Dejar Moras completamente ordenado",area:"Morosos",categoryMode:"manual",owner:"Lucas",deadline:"2026-10-02",recurrence:"none",recurrenceDay:null,status:"urgente",substatus:"En análisis",priority:"alta",description:"Objetivo: Obj. 3. Evidencia esperada: 100% de casos asignados/gestionados, estados actualizados, recuperados, pendientes y % de recupero.",attachments:[]},
+      {id:"work-20260918-04",title:"Armar un tablero de conversión comercial",area:"Mejorar inscripciones",categoryMode:"manual",owner:"Lucas",deadline:"2026-10-02",recurrence:"none",recurrenceDay:null,status:"urgente",substatus:"En análisis",priority:"alta",description:"Objetivo: Obj. 4. Evidencia esperada: Leads → matrículas, conversión por asistente, carrera y modalidad, más proyección contra objetivo.",attachments:[]},
+      {id:"work-20260918-05",title:"Dejar Retención al día",area:"Bajas",categoryMode:"manual",owner:"Lucas",deadline:"2026-10-02",recurrence:"none",recurrenceDay:null,status:"urgente",substatus:"En análisis",priority:"alta",description:"Objetivo: Obj. 5. Evidencia esperada: casos recibidos, gestionados, retenidos, bajas, pendientes, motivos y % de retención.",attachments:[]},
+      {id:"work-20260918-06",title:"Hacer reuniones individuales cortas con cada asistente",area:"Inscripciones",categoryMode:"manual",owner:"Lucas",deadline:"2026-10-02",recurrence:"none",recurrenceDay:null,status:"en-proceso",substatus:"Reunión programada",priority:"media",description:"Objetivos: Obj. 1 / 2 / 4. Evidencia esperada: una minuta por persona con resultado, dificultad encontrada y acción de mejora.",attachments:[]},
+      {id:"work-20260918-07",title:"Preparar completamente la capacitación con Directores de Carrera del 5/10",area:"Inscripciones",categoryMode:"manual",owner:"Lucas",deadline:"2026-10-02",recurrence:"none",recurrenceDay:null,status:"en-proceso",substatus:"Coordinado",priority:"media",description:"Objetivo: Obj. 1. Evidencia esperada: cronograma, preguntas por carrera, convocatoria y sistema de evaluación previa/posterior.",attachments:[]},
+      {id:"work-20260918-08",title:"Cerrar el Plan Comercial de Logística",area:"Mejorar inscripciones",categoryMode:"manual",owner:"Lucas",deadline:"2026-10-02",recurrence:"none",recurrenceDay:null,status:"en-proceso",substatus:"En revisión",priority:"media",description:"Objetivo: Obj. 4. Evidencia esperada: objetivo de 70 matrículas sobre 700 leads, conversión esperada del 10%, seguimiento, etapas y acciones ante desvíos.",attachments:[]},
+      {id:"work-20260918-09",title:"Analizar motivos de baja",area:"Bajas",categoryMode:"manual",owner:"Lucas",deadline:"2026-10-02",recurrence:"none",recurrenceDay:null,status:"en-proceso",substatus:"En análisis",priority:"media",description:"Objetivo: Obj. 5. Evidencia esperada: ranking descriptivo de causas, cantidad de casos y al menos una acción preventiva propuesta.",attachments:[]},
+      {id:"work-20260918-10",title:"Preparar un informe ejecutivo para el regreso de Magalí",area:"Pedidos",categoryMode:"manual",owner:"Lucas",deadline:"2026-10-02",recurrence:"none",recurrenceDay:null,status:"neutral",substatus:"En revisión",priority:"baja",description:"Objetivos: Obj. 1–5. Evidencia esperada: una sola hoja/tablero con avance, resultado, evidencia, problemas y próximos pasos de cada objetivo.",attachments:[]}
+    ];
+
     const seedTasks = [
       {title:"Marcar inscriptos y hablar con asistentes / tirar preinscriptos",area:"Inscripciones",description:"Revisar inscriptos y preinscriptos.",owner:"Lucas",deadline:"",status:"en-proceso",substatus:"En análisis",priority:"alta",attachments:[]},
       {title:"Ver números con asesoras y corroborar leads nuevos",area:"Inscripciones",description:"Corroborar cómo van los leads nuevos.",owner:"Lucas",deadline:"",status:"completada",substatus:"Aprobado",priority:"media",attachments:[]},
@@ -1238,6 +1251,23 @@
     let settings = loadSettings();
     columnDefs = (settings.categories || defaultColumnDefs).map(c => ({...c}));
     let tasks = loadTasks();
+    const restoreToken = new URLSearchParams(location.search).get("restaurar");
+    if(restoreToken === "trabajo-20260918"){
+      tasks = WORK_TASKS_20260918.map(t => ({...t, attachments:[...(t.attachments || [])]}));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+      localStorage.removeItem(CLOUD_SYNC_KEY);
+      try{
+        const own = new URL(location.href);
+        own.searchParams.delete("restaurar");
+        history.replaceState({}, "", own.toString());
+        if(window.parent && window.parent !== window){
+          const pu = new URL(window.parent.location.href);
+          pu.searchParams.delete("restaurar");
+          window.parent.history.replaceState({}, "", pu.toString());
+        }
+      }catch(e){ console.warn("Limpieza URL restauración:", e); }
+      setTimeout(()=>toast("✅ Tareas del trabajo restauradas"),250);
+    }
     let onlyPending = settings.onlyPending !== false;
     let collapsedAreas = new Set(settings.collapsedAreas || []);
     let compactMode = !!settings.compactMode;
