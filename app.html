@@ -2901,7 +2901,13 @@
     window.syncTasksToFirestore = async function(tasks){
       const db = window.canvasFirestore;
       if(!db) return false;
-      for(const task of tasks){
+      const ref = collection(db, "canvas_tasks");
+      const snap = await getDocs(ref);
+      const wanted = new Set((tasks || []).map(t => String(t.id)));
+      for(const item of snap.docs){
+        if(!wanted.has(String(item.id))) await deleteDoc(doc(db, "canvas_tasks", item.id));
+      }
+      for(const task of (tasks || [])){
         await setDoc(doc(db, "canvas_tasks", task.id), task);
       }
       return true;
