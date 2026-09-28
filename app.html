@@ -9,7 +9,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <meta name="app-version" content="2026.09.22.action-types.3" />
+  <meta name="app-version" content="2026.09.28.cloud-sync.1" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Acciones" />
@@ -822,6 +822,8 @@
         <button class="btn" id="downloadMobileBtn"><i data-lucide="smartphone"></i> Descargar móvil</button>
         <button class="btn" id="iphoneShortcutBtn"><i data-lucide="square-plus"></i> Acceso rápido iPhone</button>
         <button class="btn" id="importXlsBtn" title="Importar tareas desde un archivo .XLS"><i data-lucide="file-spreadsheet"></i> Importar XLS</button>
+        <button class="btn" id="cloudPullBtn" title="Traer las tareas guardadas en la nube"><i data-lucide="cloud-download"></i> Traer de nube</button>
+        <button class="btn" id="cloudPushBtn" title="Usar las tareas de este equipo como copia principal"><i data-lucide="cloud-upload"></i> Subir a nube</button>
         <button class="btn primary" id="newTaskBtn"><i data-lucide="plus"></i> Nueva tarea</button>
       </div>
     </header>
@@ -1105,6 +1107,7 @@
 
   <script>
     const STORAGE_KEY = "tablero_canvas_advanced_v1";
+    const CLOUD_SYNC_KEY = "tablero_canvas_cloud_sync_v1";
     const DEFAULT_FIREBASE_CONFIG = {"apiKey": "AIzaSyCyaPuH3e35AB9aIx_d2qUA28435UJqjf0", "authDomain": "aplicacionparajugaric.firebaseapp.com", "projectId": "aplicacionparajugaric", "storageBucket": "aplicacionparajugaric.firebasestorage.app", "messagingSenderId": "744240763447", "appId": "1:744240763447:web:79a21a7f7468dc231b65b2", "measurementId": "G-YMRZEF672J"};
     const SETTINGS_KEY = "tablero_canvas_advanced_settings_v1";
 
@@ -2642,6 +2645,53 @@
       e.target.value = "";
     });
 
+    async function ensureCloudReady(){
+      if(!window.canvasFirestore) await initializeFirebaseIfConfigured();
+      return !!window.canvasFirestore;
+    }
+
+    async function pullTasksFromCloud(){
+      if(!await ensureCloudReady()){
+        toast("No se pudo conectar con la nube");
+        return;
+      }
+      try{
+        const remote = await window.loadTasksFromFirestore?.();
+        if(!Array.isArray(remote) || !remote.length){
+          toast("No hay tareas guardadas en la nube");
+          return;
+        }
+        tasks = remote;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+        localStorage.setItem(CLOUD_SYNC_KEY, "1");
+        renderBoard();
+        toast(`☁️ Se cargaron ${tasks.length} tareas desde la nube`);
+      }catch(err){
+        console.error("Traer nube:", err);
+        toast("No se pudieron traer las tareas de la nube");
+      }
+    }
+
+    async function pushTasksToCloud(){
+      if(!await ensureCloudReady()){
+        toast("No se pudo conectar con la nube");
+        return;
+      }
+      const ok = confirm(`Vas a usar las ${tasks.length} tareas de ESTE equipo como lista principal y reemplazar la copia de la nube. ¿Continuar?`);
+      if(!ok) return;
+      try{
+        await window.replaceTasksInFirestore?.(tasks);
+        localStorage.setItem(CLOUD_SYNC_KEY, "1");
+        toast(`☁️ Se subieron ${tasks.length} tareas. Este tablero quedó como principal.`);
+      }catch(err){
+        console.error("Subir nube:", err);
+        toast("No se pudieron subir las tareas a la nube");
+      }
+    }
+
+    $("cloudPullBtn").addEventListener("click", pullTasksFromCloud);
+    $("cloudPushBtn").addEventListener("click", pushTasksToCloud);
+
     $("newTaskBtn").addEventListener("click", () => openTaskDialog());
 
     $("pendingBtn").addEventListener("click", () => {
@@ -2713,13 +2763,15 @@
       };
     }
 
+    window.addEventListener("canvas-firebase-ready", () => initializeFirebaseIfConfigured());
+
     async function initializeFirebaseIfConfigured(){
       const raw = settings.firebaseConfig;
       if(!raw || !window.initCanvasFirebase) return;
       try{
         const config = typeof raw === "string" ? JSON.parse(raw) : raw;
         const db = await window.initCanvasFirebase(config);
-        if(db && settings.loadFromFirestore === true){
+        if(db && localStorage.getItem(CLOUD_SYNC_KEY) === "1"){
           const remote = await window.loadTasksFromFirestore();
           if(Array.isArray(remote) && remote.length){
             tasks = remote;
@@ -2734,7 +2786,7 @@
 
     function saveTasksCloudReady(){
       saveTasks();
-      if(window.canvasFirestore && window.syncTasksToFirestore){
+      if(localStorage.getItem(CLOUD_SYNC_KEY) === "1" && window.canvasFirestore && window.syncTasksToFirestore){
         window.syncTasksToFirestore(tasks).catch(console.error);
       }
     }
@@ -2820,7 +2872,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
-    import { getFirestore, collection, getDocs, setDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
+    import { getFirestore, collection, getDocs, setDoc, deleteDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
 
     window.initCanvasFirebase = async function(config){
       try{
@@ -2834,7 +2886,7 @@
             const remote = snap.docs.map(d => ({id:d.id, ...d.data()}));
             const localJson = JSON.stringify((window.getCanvasTasks?.() || []).map(t => ({...t, attachments:t.attachments || []})));
             const remoteJson = JSON.stringify(remote.map(t => ({...t, attachments:t.attachments || []})));
-            if(localJson !== remoteJson && window.applyCanvasRemoteTasks){
+            if(localStorage.getItem("tablero_canvas_cloud_sync_v1") === "1" && localJson !== remoteJson && window.applyCanvasRemoteTasks){
               window.applyCanvasRemoteTasks(remote);
             }
           }, err => console.error("Firebase live:", err));
@@ -2861,6 +2913,23 @@
       const snap = await getDocs(collection(db, "canvas_tasks"));
       return snap.docs.map(d => ({id:d.id, ...d.data()}));
     };
+
+    window.replaceTasksInFirestore = async function(tasks){
+      const db = window.canvasFirestore;
+      if(!db) return false;
+      const ref = collection(db, "canvas_tasks");
+      const snap = await getDocs(ref);
+      const wanted = new Set((tasks || []).map(t => String(t.id)));
+      for(const item of snap.docs){
+        if(!wanted.has(String(item.id))) await deleteDoc(doc(db, "canvas_tasks", item.id));
+      }
+      for(const task of (tasks || [])){
+        await setDoc(doc(db, "canvas_tasks", task.id), task);
+      }
+      return true;
+    };
+
+    window.dispatchEvent(new Event("canvas-firebase-ready"));
   </script>
 
 </body>
