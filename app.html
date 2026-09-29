@@ -9,7 +9,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <meta name="app-version" content="2026.09.28.restore-work.1" />
+  <meta name="app-version" content="2026.09.28.cloud-pull-fix.1" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Acciones" />
@@ -2676,29 +2676,54 @@
     });
 
     async function ensureCloudReady(){
-      if(!window.canvasFirestore) await initializeFirebaseIfConfigured();
-      return !!window.canvasFirestore;
+      if(window.canvasFirestore && window.loadTasksFromFirestore) return true;
+      for(let i=0;i<60 && !window.initCanvasFirebase;i++){
+        await new Promise(resolve => setTimeout(resolve,100));
+      }
+      if(!window.initCanvasFirebase) return false;
+      await initializeFirebaseIfConfigured();
+      for(let i=0;i<30 && (!window.canvasFirestore || !window.loadTasksFromFirestore);i++){
+        await new Promise(resolve => setTimeout(resolve,100));
+      }
+      return !!(window.canvasFirestore && window.loadTasksFromFirestore);
     }
 
     async function pullTasksFromCloud(){
+      const btn = $("cloudPullBtn");
+      const originalText = btn?.innerHTML;
+      if(btn){ btn.disabled = true; btn.textContent = "Conectando…"; }
       if(!await ensureCloudReady()){
-        toast("No se pudo conectar con la nube");
+        if(btn){ btn.disabled = false; btn.innerHTML = originalText; refreshIcons(); }
+        toast("No se pudo conectar con Firebase. Recargá la página y probá de nuevo.");
         return;
       }
       try{
-        const remote = await window.loadTasksFromFirestore?.();
+        if(btn) btn.textContent = "Descargando…";
+        const remote = await window.loadTasksFromFirestore();
         if(!Array.isArray(remote) || !remote.length){
-          toast("No hay tareas guardadas en la nube");
+          toast("La nube está vacía: no encontré tareas para traer.");
           return;
         }
-        tasks = remote;
+        tasks = remote.map(t => ({...t, attachments:t.attachments || []}));
         localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
         localStorage.setItem(CLOUD_SYNC_KEY, "1");
         renderBoard();
-        toast(`☁️ Se cargaron ${tasks.length} tareas desde la nube`);
+        try{
+          const own = new URL(location.href);
+          own.searchParams.delete("nube");
+          history.replaceState({}, "", own.toString());
+          if(window.parent && window.parent !== window){
+            const pu = new URL(window.parent.location.href);
+            pu.searchParams.delete("nube");
+            window.parent.history.replaceState({}, "", pu.toString());
+          }
+        }catch(e){}
+        toast(`☁️ LISTO: se trajeron ${tasks.length} tareas de la nube`);
       }catch(err){
         console.error("Traer nube:", err);
-        toast("No se pudieron traer las tareas de la nube");
+        toast("Error al descargar de la nube: " + (err?.message || "desconocido"));
+      }finally{
+        if(btn){ btn.disabled = false; btn.innerHTML = originalText; refreshIcons(); }
       }
     }
 
@@ -2721,6 +2746,9 @@
 
     $("cloudPullBtn").addEventListener("click", pullTasksFromCloud);
     $("cloudPushBtn").addEventListener("click", pushTasksToCloud);
+    if(new URLSearchParams(location.search).get("nube") === "traer"){
+      setTimeout(pullTasksFromCloud, 150);
+    }
 
     $("newTaskBtn").addEventListener("click", () => openTaskDialog());
 
