@@ -9,7 +9,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <meta name="app-version" content="2026.09.28.cloud-diagnostic.1" />
+  <meta name="app-version" content="2026.09.29.cloud-fix.1" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Acciones" />
@@ -2676,16 +2676,16 @@
     });
 
     async function ensureCloudReady(){
-      if(window.canvasFirestore && window.loadTasksFromFirestore) return true;
+      if(window.canvasFirestore && window.loadTasksFromFirestore && window.replaceTasksInFirestore) return true;
       for(let i=0;i<60 && !window.initCanvasFirebase;i++){
         await new Promise(resolve => setTimeout(resolve,100));
       }
       if(!window.initCanvasFirebase) return false;
       await initializeFirebaseIfConfigured();
-      for(let i=0;i<30 && (!window.canvasFirestore || !window.loadTasksFromFirestore);i++){
+      for(let i=0;i<30 && (!window.canvasFirestore || !window.loadTasksFromFirestore || !window.replaceTasksInFirestore);i++){
         await new Promise(resolve => setTimeout(resolve,100));
       }
-      return !!(window.canvasFirestore && window.loadTasksFromFirestore);
+      return !!(window.canvasFirestore && window.loadTasksFromFirestore && window.replaceTasksInFirestore);
     }
 
     async function pullTasksFromCloud(){
@@ -2753,12 +2753,14 @@
       const ok = confirm(`Vas a usar las ${tasks.length} tareas de ESTE equipo como lista principal y reemplazar la copia de la nube. ¿Continuar?`);
       if(!ok) return;
       try{
-        await window.replaceTasksInFirestore?.(tasks);
+        const uploaded = await window.replaceTasksInFirestore(tasks);
+        if(uploaded !== true) throw new Error("Firebase no confirmó la subida");
         localStorage.setItem(CLOUD_SYNC_KEY, "1");
         toast(`☁️ Se subieron ${tasks.length} tareas. Este tablero quedó como principal.`);
       }catch(err){
         console.error("Subir nube:", err);
-        toast("No se pudieron subir las tareas a la nube");
+        const detail = err?.code || err?.message || "error desconocido";
+        toast("No se pudieron subir las tareas: " + detail);
       }
     }
 
@@ -2948,13 +2950,13 @@
   </script>
 
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
+    import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
     import { getFirestore, collection, getDocs, setDoc, deleteDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
 
     window.initCanvasFirebase = async function(config){
       try{
         if(!config || !config.projectId) return null;
-        const app = initializeApp(config);
+        const app = getApps().length ? getApp() : initializeApp(config);
         const db = getFirestore(app);
         window.canvasFirestore = db;
         if(!window.canvasLiveUnsubscribe){
@@ -2975,17 +2977,38 @@
       }
     };
 
+    function cloudSafeTask(task){
+      const safe = JSON.parse(JSON.stringify(task || {}));
+      if(Array.isArray(safe.attachments)){
+        let dataBudget = 650000;
+        safe.attachments = safe.attachments.map(att => {
+          const copy = {...(att || {})};
+          if(typeof copy.data === "string"){
+            if(copy.data.length <= dataBudget){
+              dataBudget -= copy.data.length;
+            }else{
+              delete copy.data;
+              copy.cloudDataOmitted = true;
+            }
+          }
+          return copy;
+        });
+      }
+      return safe;
+    }
+
     window.syncTasksToFirestore = async function(tasks){
       const db = window.canvasFirestore;
       if(!db) return false;
       const ref = collection(db, "canvas_tasks");
       const snap = await getDocs(ref);
-      const wanted = new Set((tasks || []).map(t => String(t.id)));
+      const safeTasks = (tasks || []).map(cloudSafeTask);
+      const wanted = new Set(safeTasks.map(t => String(t.id)));
       for(const item of snap.docs){
         if(!wanted.has(String(item.id))) await deleteDoc(doc(db, "canvas_tasks", item.id));
       }
-      for(const task of (tasks || [])){
-        await setDoc(doc(db, "canvas_tasks", task.id), task);
+      for(const task of safeTasks){
+        await setDoc(doc(db, "canvas_tasks", String(task.id)), task);
       }
       return true;
     };
@@ -3002,12 +3025,13 @@
       if(!db) return false;
       const ref = collection(db, "canvas_tasks");
       const snap = await getDocs(ref);
-      const wanted = new Set((tasks || []).map(t => String(t.id)));
+      const safeTasks = (tasks || []).map(cloudSafeTask);
+      const wanted = new Set(safeTasks.map(t => String(t.id)));
       for(const item of snap.docs){
         if(!wanted.has(String(item.id))) await deleteDoc(doc(db, "canvas_tasks", item.id));
       }
-      for(const task of (tasks || [])){
-        await setDoc(doc(db, "canvas_tasks", task.id), task);
+      for(const task of safeTasks){
+        await setDoc(doc(db, "canvas_tasks", String(task.id)), task);
       }
       return true;
     };
