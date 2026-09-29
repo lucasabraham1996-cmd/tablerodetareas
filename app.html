@@ -9,7 +9,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <meta name="app-version" content="2026.09.29.subtasks.1" />
+  <meta name="app-version" content="2026.09.29.excel.1" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Acciones" />
@@ -952,6 +952,7 @@
         <button class="btn" id="downloadMobileBtn"><i data-lucide="smartphone"></i> Descargar móvil</button>
         <button class="btn" id="iphoneShortcutBtn"><i data-lucide="square-plus"></i> Acceso rápido iPhone</button>
         <button class="btn" id="importXlsBtn" title="Importar tareas desde un archivo .XLS"><i data-lucide="file-spreadsheet"></i> Importar XLS</button>
+        <button class="btn" id="exportXlsxBtn" title="Descargar un Excel con las tareas hechas y por hacer"><i data-lucide="download"></i> Exportar Excel</button>
         <button class="btn" id="cloudPullBtn" title="Traer las tareas guardadas en la nube"><i data-lucide="cloud-download"></i> Traer de nube</button>
         <button class="btn" id="cloudPushBtn" title="Usar las tareas de este equipo como copia principal"><i data-lucide="cloud-upload"></i> Subir a nube</button>
         <button class="btn primary" id="newTaskBtn"><i data-lucide="plus"></i> Nueva tarea</button>
@@ -2929,6 +2930,103 @@
       await importTasksFromXls(file);
       e.target.value = "";
     });
+
+    function exportTaskDate(value){
+      if(!value) return "";
+      const parts = String(value).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if(!parts) return String(value);
+      return `${parts[3]}/${parts[2]}/${parts[1]}`;
+    }
+
+    function exportTaskRow(task){
+      const status = getStatuses().find(s => s.id === task.status);
+      const actionType = actionTypeById(task.actionType || inferActionType(task));
+      const subtasks = normalizeSubtasks(task.subtasks);
+      const completedSubtasks = subtasks.filter(s => s.done).length;
+      const subtaskProgress = subtasks.length
+        ? `${completedSubtasks}/${subtasks.length} (${Math.round((completedSubtasks / subtasks.length) * 100)}%)`
+        : "";
+      const subtaskText = subtasks.map(s => `${s.done ? "✓" : "☐"} ${s.text || ""}`).join(" | ");
+
+      return {
+        "Tarea": task.title || "",
+        "Categoría": task.area || "",
+        "Tipo de acción": actionType?.label || "",
+        "Responsable": task.owner || "",
+        "Fecha límite": exportTaskDate(task.deadline),
+        "Estado": status?.label || task.status || "",
+        "Subestado": task.substatus || "",
+        "Prioridad": task.priority ? task.priority.charAt(0).toUpperCase() + task.priority.slice(1) : "",
+        "Progreso subtareas": subtaskProgress,
+        "Subtareas": subtaskText,
+        "Periodicidad": task.recurrence === "daily" ? "Diaria" : task.recurrence === "monthly" ? "Mensual" : "",
+        "Descripción": task.description || ""
+      };
+    }
+
+    function configureExportSheet(sheet, rowCount){
+      sheet["!cols"] = [
+        {wch:42},
+        {wch:28},
+        {wch:22},
+        {wch:22},
+        {wch:15},
+        {wch:18},
+        {wch:22},
+        {wch:12},
+        {wch:20},
+        {wch:52},
+        {wch:16},
+        {wch:58}
+      ];
+      if(rowCount > 0 && sheet["!ref"]){
+        sheet["!autofilter"] = {ref: sheet["!ref"]};
+      }
+    }
+
+    function exportTasksToExcel(){
+      if(!window.XLSX){
+        toast("No se pudo cargar el generador de Excel");
+        return;
+      }
+
+      const pendingTasks = tasks.filter(t => t.status !== "completada");
+      const doneTasks = tasks.filter(t => t.status === "completada");
+      const headers = [
+        "Tarea","Categoría","Tipo de acción","Responsable","Fecha límite","Estado",
+        "Subestado","Prioridad","Progreso subtareas","Subtareas","Periodicidad","Descripción"
+      ];
+
+      const makeSheet = list => {
+        const rows = list.map(exportTaskRow);
+        const sheet = XLSX.utils.json_to_sheet(rows, {header:headers});
+        configureExportSheet(sheet, rows.length);
+        return sheet;
+      };
+
+      const summaryRows = [
+        ["TABLERO DE TAREAS", ""],
+        ["Generado", new Date().toLocaleString("es-AR")],
+        ["", ""],
+        ["Resumen", "Cantidad"],
+        ["Total", tasks.length],
+        ["Por hacer", pendingTasks.length],
+        ["Hechas", doneTasks.length]
+      ];
+      const summarySheet = XLSX.utils.aoa_to_sheet(summaryRows);
+      summarySheet["!cols"] = [{wch:24},{wch:22}];
+
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, summarySheet, "Resumen");
+      XLSX.utils.book_append_sheet(workbook, makeSheet(pendingTasks), "Por hacer");
+      XLSX.utils.book_append_sheet(workbook, makeSheet(doneTasks), "Hechas");
+
+      const stamp = new Date().toISOString().slice(0,10);
+      XLSX.writeFile(workbook, `tablero-tareas-${stamp}.xlsx`, {compression:true});
+      toast(`Excel descargado: ${pendingTasks.length} por hacer · ${doneTasks.length} hechas`);
+    }
+
+    $("exportXlsxBtn").addEventListener("click", exportTasksToExcel);
 
     async function ensureCloudReady(){
       if(window.canvasFirestore && window.loadTasksFromFirestore && window.replaceTasksInFirestore) return true;
