@@ -1,3 +1,4 @@
+const SYNC_VERSION = "2026-09-29.3";
 const SPREADSHEET_ID = "1cl-A3qyT9llxfibZmqXkO__mO-DpnTBdFponeajseSM";
 const TASK_SHEET = "Tareas";
 const SYNC_SHEET = "Sincronización";
@@ -34,7 +35,7 @@ function doPost(e) {
     if (syncSheet) {
       syncSheet.getRange("B7").setValue(new Date());
       syncSheet.getRange("B8").setValue(rows.length);
-      syncSheet.getRange("B9").setValue("OK");
+      syncSheet.getRange("B9").setValue("OK · v" + SYNC_VERSION);
     }
 
     SpreadsheetApp.flush();
@@ -54,13 +55,13 @@ function doGet(e) {
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const syncSheet = ss.getSheetByName(SYNC_SHEET);
     if (syncSheet && e && e.parameter && e.parameter.ping === "1") {
-      syncSheet.getRange("B9").setValue("ENDPOINT ACTIVO");
+      syncSheet.getRange("B9").setValue("ENDPOINT ACTIVO · v" + SYNC_VERSION);
       syncSheet.getRange("B7").setValue(new Date());
       SpreadsheetApp.flush();
     }
   } catch (err) {}
 
   return ContentService
-    .createTextOutput("Sincronización activa. Si ves este mensaje, la URL /exec funciona.")
+    .createTextOutput("Sincronización activa · v" + SYNC_VERSION + ". Si ves este mensaje, la URL /exec funciona.")
     .setMimeType(ContentService.MimeType.TEXT);
 }
