@@ -34,6 +34,7 @@ function doPost(e) {
     if (syncSheet) {
       syncSheet.getRange("B7").setValue(new Date());
       syncSheet.getRange("B8").setValue(rows.length);
+      syncSheet.getRange("B9").setValue("OK");
     }
 
     SpreadsheetApp.flush();
@@ -48,8 +49,18 @@ function doPost(e) {
   }
 }
 
-function doGet() {
+function doGet(e) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const syncSheet = ss.getSheetByName(SYNC_SHEET);
+    if (syncSheet && e && e.parameter && e.parameter.ping === "1") {
+      syncSheet.getRange("B9").setValue("ENDPOINT ACTIVO");
+      syncSheet.getRange("B7").setValue(new Date());
+      SpreadsheetApp.flush();
+    }
+  } catch (err) {}
+
   return ContentService
-    .createTextOutput("Sincronización Tablero de tareas → Google Sheets activa.")
+    .createTextOutput("Sincronización activa. Si ves este mensaje, la URL /exec funciona.")
     .setMimeType(ContentService.MimeType.TEXT);
 }
