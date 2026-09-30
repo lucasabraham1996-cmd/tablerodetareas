@@ -9,7 +9,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <meta name="app-version" content="2026.09.29.sheet-sync.1" />
+  <meta name="app-version" content="2026.09.29.sheetfix.2" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Acciones" />
@@ -1187,7 +1187,11 @@
         <div class="full" style="margin-top:10px">
           <label for="sheetSyncEndpoint">Google Sheet · URL de sincronización</label>
           <input id="sheetSyncEndpoint" class="field" placeholder="https://script.google.com/macros/s/.../exec" />
-          <div class="hint">Al cargar esta URL, la app enviará automáticamente el tablero completo al Sheet cada vez que guardes un cambio.</div>
+          <div class="hint">La URL debe ser la implementación como <b>Aplicación web</b> y terminar en <b>/exec</b>. La app enviará el tablero completo cada vez que guardes un cambio.</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+            <button type="button" class="btn" id="sheetSyncTestBtn"><i data-lucide="plug-zap"></i> Probar conexión</button>
+            <a class="btn" href="https://docs.google.com/spreadsheets/d/1cl-A3qyT9llxfibZmqXkO__mO-DpnTBdFponeajseSM/edit" target="_blank" rel="noopener" style="text-decoration:none"><i data-lucide="external-link"></i> Abrir Sheet</a>
+          </div>
         </div>
       </div>
       <div class="modal-actions">
@@ -2653,7 +2657,13 @@
       settings.reminderEmail = $("reminderEmail").value.trim();
       settings.reminderWhatsapp = $("reminderWhatsapp").value.trim();
       settings.reminderEndpoint = $("reminderEndpoint").value.trim();
-      settings.sheetSyncEndpoint = $("sheetSyncEndpoint").value.trim();
+      const sheetEndpoint = $("sheetSyncEndpoint").value.trim();
+      if(sheetEndpoint && !/^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec(?:\?.*)?$/i.test(sheetEndpoint)){
+        toast("La URL del Sheet no es válida. Debe terminar en /exec");
+        $("sheetSyncEndpoint").focus();
+        return;
+      }
+      settings.sheetSyncEndpoint = sheetEndpoint;
       saveSettings();
       $("integrationDialog").close();
       await initializeFirebaseIfConfigured();
@@ -3060,7 +3070,7 @@
           headers: {"Content-Type":"text/plain;charset=utf-8"},
           body: JSON.stringify(payload)
         }).then(() => {
-          if(force) toast(`Google Sheet enviado · ${tasks.length} tareas`);
+          if(force) toast(`Envío al Sheet solicitado · ${tasks.length} tareas. Revisá la pestaña Sincronización`);
         }).catch(err => {
           console.error("Google Sheet sync:", err);
           if(force) toast("No se pudo enviar al Google Sheet");
@@ -3077,6 +3087,23 @@
     }
 
     $("sheetSyncBtn").addEventListener("click", () => queueSheetSync(true));
+
+    $("sheetSyncTestBtn").addEventListener("click", () => {
+      const endpoint = String($("sheetSyncEndpoint").value || settings.sheetSyncEndpoint || "").trim();
+      if(!endpoint){
+        toast("Pegá primero la URL de Apps Script que termina en /exec");
+        $("sheetSyncEndpoint").focus();
+        return;
+      }
+      if(!/^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec(?:\?.*)?$/i.test(endpoint)){
+        toast("Esa no parece ser la URL publicada. Debe terminar en /exec");
+        $("sheetSyncEndpoint").focus();
+        return;
+      }
+      const testUrl = endpoint + (endpoint.includes("?") ? "&" : "?") + "ping=1";
+      window.open(testUrl, "_blank", "noopener");
+      toast("Se abrió la prueba. Debe decir: Sincronización activa");
+    });
 
     async function ensureCloudReady(){
       if(window.canvasFirestore && window.loadTasksFromFirestore && window.replaceTasksInFirestore) return true;
